@@ -1,25 +1,17 @@
 {
   "type": "app",
   "version": "2.0.0",
-  "name": "PLACEHOLDER: Name of the application in Ecosystem",
-  "description": "PLACEHOLDER: Short description of the app in Ecosystem",
-  "docker_image": "supervisely/base-py-sdk:6.72.214 !!! CHANGE IMAGE NAME AND VERSION!!!",
-  "categories": [
-    "images",
-    "PLACEHOLDER: input all categories here"
-  ],
-  "icon": "PLACEHOLDER FOR ICON (inserted by designers)",
-  "icon_cover": true,
+  "name": "Review Image Annotations in Batches",
+  "description": "Allows you to review the results of annotations in a user interface adapted for such tasks.",
+  "docker_image": "supervisely/base-py-sdk:6.73.138",
+  "categories": ["images", "labelling", "collaboration"],
   "headless": false,
-  "poster": "PLACEHOLDER FOR POSTER (inserted by designers)",
   "entrypoint": "python -m uvicorn src.main:app --host 0.0.0.0 --port 8000",
   "port": 8000,
   "context_menu": {
-    "target": [
-      "images_project",
-      "ecosystem",
-      "PLACEHOLDER: input all targets here"
-    ],
-    "context_category": "PLACEHOLDER: input context category here (right click in Ecosystem)"
-  }
+    "target": ["ecosystem", "labeling_job"]
+  },
+  "icon": "https://i.imgur.com/4DQxmL0.png",
+  "icon_cover": true,
+  "poster": "https://github.com/supervisely-ecosystem/render-previews-app/assets/119248312/c549392d-a81f-40c0-8ddd-5ddcc1850c81"
 }

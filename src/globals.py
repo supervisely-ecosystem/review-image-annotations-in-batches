@@ -2,42 +2,32 @@ import os
 
 import supervisely as sly
 from dotenv import load_dotenv
+from supervisely.api.labeling_job_api import LabelingJobInfo
+from supervisely.app.widgets import Select
 
 if sly.is_development():
-    # * For convinient development, has no effect in the production.
     load_dotenv("local.env")
     load_dotenv(os.path.expanduser("~/supervisely.env"))
 
-
-# * Creating an instance of the supervisely API according to the environment variables.
 api = sly.Api.from_env()
 
-
-# * This variable requires SLY_APP_DATA_DIR in local.env file.
 SLY_APP_DATA_DIR = sly.app.get_data_dir()
 
+# STATIC_DIR = os.path.join(SLY_APP_DATA_DIR, "static")
 
-# * If the app needed static dir (showing local path in web UI), it should be created here.
-# * If not needed, this code can be securely removed.
-STATIC_DIR = os.path.join(SLY_APP_DATA_DIR, "static")
-sly.fs.mkdir(STATIC_DIR)
+selected_labeling_task = os.environ.get("modal.state.slyJobId", None)
 
+# ? do we need to restrict lebaling tasks to only the ones that are assigned to the current user?
+labeling_tasks_list = api.labeling_job.get_list(
+    team_id=sly.env.team_id(), reviewer_id=sly.env.user_id()
+)
+labeling_task_names = [
+    Select.Item(labeling_task.id, labeling_task.name) for labeling_task in labeling_tasks_list
+]
 
-# * To avoid global variables in different modules, it's better to use g.STATE (g.AppState) object
-# * across the app. It can be accessed from any module by importing globals module.
-class State:
-    def __init__(self):
-        # * This class should contain all the variables that are used across the app.
-        # * For example selected team, workspace, project, dataset, etc.
-        self.selected_team = sly.env.team_id()
-        self.selected_workspace = sly.env.workspace_id()
-        self.selected_project = sly.env.project_id(raise_not_found=False)
-        self.selected_dataset = sly.env.dataset_id(raise_not_found=False)
-
-        self.continue_working = True
-
-
-# * Class object to access from other modules.
-# * import src.globals as g
-# * selected_team = g.STATE.selected_team
-STATE = State()
+images_list = []
+labeling_task_info: LabelingJobInfo = None
+image_batches = []
+current_batch_idx = 0
+populate_gallery_func = None
+review_images_cnt = 0
