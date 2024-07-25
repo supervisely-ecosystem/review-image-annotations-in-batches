@@ -1,23 +1,8 @@
-<!-- _This section is about how to use the repo template,
-FIXME: it should be removed from README.md after the app is ready to be released._<br>
-
-### How to use the repo template
-
-1. Clone the repo locally.
-2. Use the `create_venv.sh` script to create a virtual environment and install all required packages.
-3. Fill required fields in the `local.env` file (your IDs: team, workspace, etc.).
-4. Code in `src/*.py` files are ready-to-use examples of how to use Supervisely Python SDK.
-You can use them as a reference or replace with your own code.
-7. After implementing all required code and UI, fill in `config.json` file. If needed edit `dev_requirements.txt` file.
-8. The repo is ready now.
-
---- -->
-
 <div align="center" markdown>
 
 <img src="poster placeholder"/>
 
-# Placeholder for app short description
+# Review Image Annotations in Batches
 
 <p align="center">
   <a href="#Overview">Overview</a> •
@@ -25,12 +10,11 @@ You can use them as a reference or replace with your own code.
   <a href="#How-To-Run">How To Run</a>
 </p>
 
-<!-- FIXME: Change the app slug in the links below (for badges and links)
-[![](https://img.shields.io/badge/supervisely-ecosystem-brightgreen)](https://ecosystem.supervise.ly/apps/supervisely-ecosystem/PLACEHOLDER-FOR-APP-PATH)
-[![](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://supervise.ly/slack)
-![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/supervisely-ecosystem/PLACEHOLDER-FOR-APP-PATH)
-[![views](https://app.supervise.ly/img/badges/views/supervisely-ecosystem/PLACEHOLDER-FOR-APP-PATH.png)](https://supervise.ly)
-[![runs](https://app.supervise.ly/img/badges/runs/supervisely-ecosystem/PLACEHOLDER-FOR-APP-PATH.png)](https://supervise.ly) -->
+[![](https://img.shields.io/badge/supervisely-ecosystem-brightgreen)](https://ecosystem.supervisely.com/apps/supervisely-ecosystem/review-image-annotations-in-batches)
+[![](https://img.shields.io/badge/slack-chat-green.svg?logo=slack)](https://supervisely.com/slack)
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/supervisely-ecosystem/review-image-annotations-in-batches)
+[![views](https://app.supervisely.com/img/badges/views/supervisely-ecosystem/review-image-annotations-in-batches.png)](https://supervisely.com)
+[![runs](https://app.supervisely.com/img/badges/runs/supervisely-ecosystem/review-image-annotations-in-batches.png)](https://supervisely.com)
 
 </div>
 
