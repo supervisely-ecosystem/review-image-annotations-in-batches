@@ -15,18 +15,18 @@ SLY_APP_DATA_DIR = sly.app.get_data_dir()
 
 # STATIC_DIR = os.path.join(SLY_APP_DATA_DIR, "static")
 
-selected_labeling_task = os.environ.get("modal.state.slyJobId", None)
+selected_task = os.environ.get("modal.state.slyJobId", None)
 
 # ? do we need to restrict lebaling tasks to only the ones that are assigned to the current user?
 labeling_tasks_list = api.labeling_job.get_list(
     team_id=sly.env.team_id(), reviewer_id=sly.env.user_id()
 )
-labeling_task_names = [
+tasks_names = [
     Select.Item(labeling_task.id, labeling_task.name) for labeling_task in labeling_tasks_list
 ]
 
 images_list = []
-labeling_task_info: LabelingJobInfo = None
+task_info: LabelingJobInfo = None
 image_batches = []
 current_batch_idx = 0
 populate_gallery_func = None

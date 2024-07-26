@@ -28,9 +28,7 @@ card.collapse()
 def apply_decision():
     for image in g.image_batches[g.current_batch_idx]:
         # TODO get status from the gallery
-        g.api.labeling_job.set_entity_review_status(
-            g.labeling_task_info.id, image[0].id, "accepted"
-        )
+        g.api.labeling_job.set_entity_review_status(g.task_info.id, image[0].id, "accepted")
     review_progress.update(len(g.image_batches[g.current_batch_idx]))
     if g.current_batch_idx <= len(g.image_batches):
         g.current_batch_idx += 1
