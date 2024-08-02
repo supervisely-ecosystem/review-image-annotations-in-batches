@@ -1,6 +1,7 @@
-from supervisely.app.widgets import Button, Card, Container, GridGallery, Progress, Text
+from supervisely.app.widgets import Button, Card, Container, Progress, Text
 
 import src.globals as g
+from src.ui.review_gallery.widget import ReviewGallery
 
 apply_button = Button("Apply", "primary")
 description_text = Text(
@@ -8,7 +9,7 @@ description_text = Text(
     "Tag editing is possible if activated before starting the process. ",
     "info",
 )
-image_gallery = GridGallery(5, empty_message="")
+image_gallery = ReviewGallery(columns_number=5, empty_message="")
 review_progress = Progress()
 gallery_container = Container(
     widgets=[description_text, review_progress, image_gallery, apply_button]
@@ -26,9 +27,10 @@ card.collapse()
 
 @apply_button.click
 def apply_decision():
+    review_state = image_gallery.get_review_state()
     for image in g.image_batches[g.current_batch_idx]:
-        # TODO get status from the gallery
-        g.api.labeling_job.set_entity_review_status(g.task_info.id, image[0].id, "accepted")
+        status = "accepted" if review_state[str(image[0].id)] else "rejected"
+        g.api.labeling_job.set_entity_review_status(g.task_info.id, image[0].id, status)
     review_progress.update(len(g.image_batches[g.current_batch_idx]))
     if g.current_batch_idx <= len(g.image_batches):
         g.current_batch_idx += 1

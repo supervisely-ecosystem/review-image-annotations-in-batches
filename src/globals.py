@@ -1,4 +1,5 @@
 import os
+from dataclasses import dataclass
 
 import supervisely as sly
 from dotenv import load_dotenv
@@ -31,3 +32,17 @@ image_batches = []
 current_batch_idx = 0
 populate_gallery_func = None
 review_images_cnt = 0
+task_project_meta = None
+
+
+@dataclass
+class Settings:
+    batch_size: int
+    group_by: str
+    tags: list
+    classes: list
+    all_images: bool
+    tags_editing: bool
+
+
+settings = None

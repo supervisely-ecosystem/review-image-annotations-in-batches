@@ -1,4 +1,5 @@
 import os
+from typing import Dict, List
 
 import supervisely as sly
 from supervisely.app.widgets import (
@@ -25,8 +26,8 @@ task_dataset_card = Card(content=dataset_thumbnail, title="Related Dataset")
 task_dataset_card.hide()
 
 start_review_button = Button("Start Review")
-change_task_button = Button("Change Labeling Task", icon="zmdi zmdi-lock-open")
-change_task_button.hide()
+change_settings_button = Button("Change Settings", icon="zmdi zmdi-lock-open")
+change_settings_button.hide()
 
 no_task_message = Text(
     "Please, select a Labeling Task before clicking the button.",
@@ -125,14 +126,14 @@ tags_editing_card = Card("Edit Tags", content=tags_editing_switcher)
 settings_1st_line_container = Container(
     widgets=[batch_size_card, group_by_card],
     direction="horizontal",
-    style="flex: 1 1 0%;/* display: flex; */",
-    fractions=[1, 1],
+    style="flex: 3 2 0%;/* display: flex; */",
+    fractions=[3, 2],
 )
 settings_2nd_line_container = Container(
     widgets=[filter_card, tags_editing_card],
     direction="horizontal",
-    style="flex: 1 1 0%;/* display: flex; */",
-    fractions=[1, 1],
+    style="flex: 3 2 0%;/* display: flex; */",
+    fractions=[3, 2],
 )
 settings_container = Container(widgets=[settings_1st_line_container, settings_2nd_line_container])
 settings_card = Card("Review Settings", content=settings_container)
@@ -167,8 +168,8 @@ input_container = Container(
         data_card,
         settings_card,
     ],
-    fractions=[1, 1],
-    style="flex: 1 1 0%;/* display: flex; */",
+    fractions=[2, 3],
+    style="flex: 2 3 0%;/* display: flex; */",
     direction="horizontal",
     gap=10,
 )
@@ -184,24 +185,99 @@ card = Card(
             start_review_button,
         ]
     ),
-    content_top_right=change_task_button,
+    content_top_right=change_settings_button,
     collapsable=True,
 )
 
 
-def create_image_batches(img_infos, anns, batch_size):
+def create_image_batches(
+    img_infos: List[sly.ImageInfo],
+    anns: List[sly.Annotation],
+    batch_size: int,
+):
     paired_list = list(zip(img_infos, anns))
     batches = [paired_list[i : i + batch_size] for i in range(0, len(paired_list), batch_size)]
     return batches
 
 
-def populate_gallery(gallery_widget: workbench.GridGallery):
+def populate_gallery(gallery_widget: workbench.ReviewGallery):
     gallery_widget.clean_up()
     for image in g.image_batches[g.current_batch_idx]:
-        gallery_widget.append(image[0].preview_url, image[1])
+        gallery_widget.append(image[0], image[1], project_meta=g.task_project_meta)
 
 
 g.populate_gallery_func = populate_gallery
+
+
+def get_settings():
+    settings = g.Settings(
+        batch_size=batch_size_input.value,
+        group_by=group_by_radio_group.get_value(),
+        tags=task_tags_selector.get_selected_tags(),
+        classes=task_classes_selector.get_selected_classes(),
+        all_images=all_images_switcher.is_on(),
+        tags_editing=tags_editing_switcher.is_on(),
+    )
+    sly.logger.debug(f"Settings: {settings}")
+    return settings
+
+
+def filter_images_by_tags(images: List[sly.ImageInfo], tags: List[str]):
+    if tags == []:
+        return images
+    filtered_images = []
+    tag_ids = [tag.sly_id for tag in tags]
+    for img in images:
+        img_tag_ids = [tag["tagId"] for tag in img.tags]
+        if any(tag_id in tag_ids for tag_id in img_tag_ids):
+            filtered_images.append(img)
+    return filtered_images
+
+
+def filter_image_anns(
+    img_infos: List[sly.ImageInfo],
+    annotations: List[sly.Annotation],
+    settings: g.Settings,
+):
+    if img_infos == []:
+        return [], []
+    filtered_anns = []
+    img_idx = []
+    for idx, ann in enumerate(annotations):
+        for label in ann.labels:
+            if label.obj_class in settings.classes:
+                filtered_anns.append(ann)
+                img_idx.append(idx)
+                break
+            # if any(tag in settings.tags for tag in label.tags):
+            #     filtered_anns.append(ann)
+            #     img_idx.append(idx)
+            #     break
+    filtered_imgs = [img_infos[idx] for idx in img_idx]
+    return filtered_imgs, filtered_anns
+
+
+def group_images_by(
+    images: List[sly.ImageInfo],
+    annotations: List[sly.Annotation],
+    group_by: str,
+):
+    grouped_images: Dict[str, List[sly.ImageInfo]] = {}
+    grouped_anns: Dict[str, List[sly.Annotation]] = {}
+
+    for img, ann in zip(images, annotations):
+        tags = [label.tags[0].items() for label in ann.labels if label.tags != []]
+        for tag in tags:
+            if tag not in grouped_images:
+                grouped_images[tag] = []
+            grouped_images[tag].append(img)
+
+
+def show_dialog_no_images():
+    text = "No images found with the specified filters."
+    sly.app.show_dialog("Warning", text, "warning")
+    sly.logger.warn(text)
+    # TODO click change_settings_button
 
 
 @task_selector.value_changed
@@ -245,9 +321,9 @@ def show_dataset_thumbnail(labeling_task_id):
 
     task_info_card.show()
 
-    project_meta = g.api.labeling_job.get_project_meta(g.selected_task)
-    task_classes_selector.set(project_meta.obj_classes)
-    task_tags_selector.set(project_meta.tag_metas)
+    g.task_project_meta = g.api.labeling_job.get_project_meta(g.selected_task)
+    task_classes_selector.set(g.task_project_meta.obj_classes)
+    task_tags_selector.set(g.task_project_meta.tag_metas)
     disable_settings(False)
 
 
@@ -268,10 +344,11 @@ def load_images_with_annotations():
     start_review_button.hide()
 
     # Showing the button for unlocking the dataset selector and showing start button.
-    change_task_button.show()
+    change_settings_button.show()
 
     sly.logger.debug(f"Calling API with Labeling Task ID {g.selected_task} to get dataset ID.")
     g.task_info = g.api.labeling_job.get_info_by_id(g.selected_task)
+    g.task_meta = g.api.labeling_job.get_project_meta(g.selected_task)
     selected_dataset = g.task_info.dataset_id
     selected_project = g.task_info.project_id
     g.images_list = g.task_info.entities
@@ -282,19 +359,38 @@ def load_images_with_annotations():
         f"Selected Dataset: {selected_dataset}"
     )
 
+    g.settings = get_settings()
+
     img_ids = [entity["id"] for entity in g.task_info.entities if entity["reviewStatus"] == "none"]
-    g.review_images_cnt = len(img_ids)
-    workbench.review_progress(total=g.review_images_cnt)
-    # TODO add filter for tags or classes
-    img_infos = g.api.image.get_list(
+
+    images = g.api.image.get_list(
         g.task_info.dataset_id,
         filters=[{"field": "id", "operator": "in", "value": img_ids}],
     )
+
+    if not g.settings.all_images:
+        images = filter_images_by_tags(images, g.settings.tags)
+        img_ids = [img.id for img in images]
+
+    if img_ids == []:
+        show_dialog_no_images()
+        return
+
+    g.review_images_cnt = len(img_ids)
+    workbench.review_progress(message="Reviewing items...", total=g.review_images_cnt)
+
     anns = g.api.labeling_job.get_annotations(g.task_info.id, img_ids)
 
-    g.image_batches = create_image_batches(img_infos, anns, 15)
+    if not g.settings.all_images:
+        images, anns = filter_image_anns(images, anns, g.settings)
+        if images == []:
+            show_dialog_no_images()
+            return
+    # images, anns = group_images_by(images, anns, g.settings.group_by)
+    
+    g.image_batches = create_image_batches(images, anns, g.settings.batch_size)
     for image in g.image_batches[g.current_batch_idx]:
-        workbench.image_gallery.append(image[0].preview_url, image[1])
+        workbench.image_gallery.append(image[0], image[1], project_meta=g.task_project_meta)
 
     workbench.card.unlock()
     workbench.card.uncollapse()
@@ -303,13 +399,13 @@ def load_images_with_annotations():
     card.collapse()
 
 
-@change_task_button.click
+@change_settings_button.click
 def handle_input():
     card.uncollapse()
     card.unlock()
     task_selector.enable()
     start_review_button.show()
-    change_task_button.hide()
+    change_settings_button.hide()
     workbench.image_gallery.clean_up()
     workbench.card.lock()
     workbench.card.collapse()

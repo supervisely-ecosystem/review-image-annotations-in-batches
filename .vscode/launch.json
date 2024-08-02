@@ -3,7 +3,7 @@
     "configurations": [
         {
             "name": "Local debug",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "uvicorn",
             "args": [
@@ -17,7 +17,7 @@
                 "--reload"
             ],
             "jinja": true,
-            "justMyCode": true,
+            "justMyCode": false,
             "env": {
                 "PYTHONPATH": "${workspaceFolder}:${PYTHONPATH}",
                 "LOG_LEVEL": "DEBUG"
