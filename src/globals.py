@@ -46,3 +46,5 @@ class Settings:
 
 
 settings = None
+
+progress = None

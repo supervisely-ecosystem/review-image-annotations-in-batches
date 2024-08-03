@@ -1,4 +1,24 @@
 <link rel="stylesheet" href="./sly/css/app/widgets/grid_gallery/style.css" />
+<link rel="stylesheet" href="./sly/app_data/src/ui/review_gallery/style.css" />
+<style>
+  .el-radio-button__orig-radio:checked + .el-radio-button__inner {
+    background-color: var(--el-radio-button-bg-color, #20a0ff);
+    border-color: var(--el-radio-button-border-color, #20a0ff);
+    color: white;
+  }
+  .rejected .el-radio-button__orig-radio:checked + .el-radio-button__inner {
+    --el-radio-button-bg-color: #ff4949;
+    --el-radio-button-border-color: #ff4949;
+  }
+  .ignore .el-radio-button__orig-radio:checked + span.el-radio-button__inner {
+    --el-radio-button-bg-color: #bfcbd9;
+    --el-radio-button-border-color: #bfcbd9;
+  }
+  .accepted .el-radio-button__orig-radio:checked + span.el-radio-button__inner {
+    --el-radio-button-bg-color: #13ce66;
+    --el-radio-button-border-color: #13ce66;
+  }
+</style>
 <div
   v-if="Object.keys(data.{{{widget.widget_id}}}.content.annotations).length > 0"
 >
@@ -42,7 +62,7 @@
     >
       <template v-slot:card-footer="{ annotation }">
         <!-- Switch -->
-        <div style="margin-top: 6px; justify-content: left" class="fflex">
+        <!-- <div style="margin-top: 6px; justify-content: left" class="fflex">
           <el-switch
             on-color="#13ce66"
             off-color="#ff4949"
@@ -54,10 +74,22 @@
           </el-switch>
           <span class="ml5"
             >{{ state.{{{widget.widget_id}}}.reviewState[annotation.image_id]
-            ?'Accept':'Reject'}}</span
+            >?'Accept':'Reject'}}</span
           >
-        </div>
+        </div> -->
         <!-- Tags -->
+
+        <div style="margin-top: 6px; justify-content: center">
+          <el-radio-group
+            size="small"
+            :value="state.{{{widget.widget_id}}}.reviewState[annotation.image_id]"
+            @input="state.{{{widget.widget_id}}}.reviewState[annotation.image_id]=$event"
+          >
+            <el-radio-button label="Accept" class="accepted"></el-radio-button>
+            <el-radio-button label="Ignore" class="ignore"></el-radio-button>
+            <el-radio-button label="Reject" class="rejected"></el-radio-button>
+          </el-radio-group>
+        </div>
         <div
           v-if="annotation.tags.length > 0"
           style="text-align: left; margin-top: 5px; white-space: normal"

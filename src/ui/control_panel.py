@@ -377,7 +377,8 @@ def load_images_with_annotations():
         return
 
     g.review_images_cnt = len(img_ids)
-    workbench.review_progress(message="Reviewing items...", total=g.review_images_cnt)
+
+    g.progress = workbench.review_progress(message="Reviewing items...", total=g.review_images_cnt)
 
     anns = g.api.labeling_job.get_annotations(g.task_info.id, img_ids)
 
@@ -387,7 +388,7 @@ def load_images_with_annotations():
             show_dialog_no_images()
             return
     # images, anns = group_images_by(images, anns, g.settings.group_by)
-    
+
     g.image_batches = create_image_batches(images, anns, g.settings.batch_size)
     for image in g.image_batches[g.current_batch_idx]:
         workbench.image_gallery.append(image[0], image[1], project_meta=g.task_project_meta)

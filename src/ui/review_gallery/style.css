@@ -1,0 +1,20 @@
+  .el-radio-button__orig-radio:checked + .el-radio-button__inner {
+    background-color: var(--el-radio-button-bg-color, #20a0ff);
+    border-color: var(--el-radio-button-border-color, #20a0ff);
+    color: white;
+  }
+
+  .rejected .el-radio-button__orig-radio:checked + .el-radio-button__inner {
+    --el-radio-button-bg-color: #ff4949;
+    --el-radio-button-border-color: #ff4949;
+  }
+
+  .ignore .el-radio-button__orig-radio:checked + span.el-radio-button__inner {
+    --el-radio-button-bg-color: #bfcbd9;
+    --el-radio-button-border-color: #bfcbd9;
+  }
+
+  .accepted .el-radio-button__orig-radio:checked + span.el-radio-button__inner {
+    --el-radio-button-bg-color: #13ce66;
+    --el-radio-button-border-color: #13ce66;
+  }

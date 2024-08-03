@@ -2,7 +2,7 @@ import copy
 import time
 import uuid
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 import markupsafe
 import supervisely
@@ -15,9 +15,17 @@ from supervisely.app.widgets import GridGallery
 
 class ReviewGallery(GridGallery):
 
-    def __init__(self, edit_tags: Optional[bool] = False, *args, **kwargs):
+    def __init__(
+        self,
+        edit_tags: Optional[bool] = False,
+        default_review_state: Literal["accept", "reject", "ignore"] = "accept",
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self._review_state = {}  # states for active switchers
+        self._default_review_state = default_review_state
+        self._edit_tags = edit_tags
 
     def to_html(self):
         current_dir = Path(__file__).parent.absolute()
@@ -43,7 +51,6 @@ class ReviewGallery(GridGallery):
                 {"tagId": tag["tagId"], "value": tag.get("value", None)}
                 for tag in cell_data["tags"]
             ]
-            # img_tag_ids = [tag["tagId"] for tag in cell_data["tags"]]
             tag_titles = [self._task_meta.get_tag_meta_by_id(tag["tagId"]).name for tag in img_tags]
             rgb_tag_colors = [
                 self._task_meta.get_tag_meta_by_id(tag["tagId"]).color for tag in img_tags
@@ -114,7 +121,7 @@ class ReviewGallery(GridGallery):
                 "tags": image_info.tags,
             }
         )
-        self._review_state.update({image_info.id: True})
+        self._review_state.update({image_info.id: self._default_review_state.capitalize()})
         self._update()
         return cell_uuid
 
