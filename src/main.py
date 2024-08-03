@@ -4,6 +4,7 @@ from supervisely.app.widgets import Container
 import src.globals as g
 import src.ui.control_panel as control_panel
 import src.ui.workbench as workbench
+from src.ui.apply_css.apply_style import ApplyCss
 
 layout = Container(
     widgets=[
@@ -12,4 +13,4 @@ layout = Container(
     ]
 )
 
-app = sly.Application(layout=layout)
+app = sly.Application(layout=ApplyCss("./static/css/styles.css", layout), static_dir="static")

@@ -2,6 +2,7 @@
     background-color: var(--el-radio-button-bg-color, #20a0ff);
     border-color: var(--el-radio-button-border-color, #20a0ff);
     color: white;
+    box-shadow: none;
   }
 
   .rejected .el-radio-button__orig-radio:checked + .el-radio-button__inner {
