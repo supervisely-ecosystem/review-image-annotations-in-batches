@@ -65,9 +65,15 @@
             :value="state.{{{widget.widget_id}}}.reviewState[annotation.image_id]"
             @input="state.{{{widget.widget_id}}}.reviewState[annotation.image_id]=$event"
           >
-            <el-radio-button label="Accept" class="accepted"></el-radio-button>
-            <el-radio-button label="Ignore" class="ignore"></el-radio-button>
-            <el-radio-button label="Reject" class="rejected"></el-radio-button>
+            <el-radio-button label="accepted" class="accepted"
+              >Accept</el-radio-button
+            >
+            <el-radio-button label="ignore" class="ignore"
+              >Ignore</el-radio-button
+            >
+            <el-radio-button label="rejected" class="rejected"
+              >Reject</el-radio-button
+            >
           </el-radio-group>
         </div>
         <div
@@ -96,7 +102,7 @@
           v-else
           style="text-align: left; margin-top: 5px; white-space: normal"
         >
-          <span style="color: gray">No tags</span>
+          <span style="color: #5a6772">No tags</span>
         </div>
         <!-- Classes -->
         <div
@@ -121,7 +127,7 @@
           v-else
           style="text-align: left; margin-top: 5px; white-space: normal"
         >
-          <span style="color: gray">No classes</span>
+          <span style="color: #5a6772">No classes</span>
         </div>
       </template>
     </sly-grid-gallery>

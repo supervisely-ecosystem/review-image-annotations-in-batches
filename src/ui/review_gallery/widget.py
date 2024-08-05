@@ -121,7 +121,7 @@ class ReviewGallery(GridGallery):
                 "tags": image_info.tags,
             }
         )
-        self._review_state.update({image_info.id: self._default_review_state.capitalize()})
+        self._review_state.update({image_info.id: self._default_review_state})
         self._update()
         return cell_uuid
 
@@ -155,3 +155,6 @@ class ReviewGallery(GridGallery):
 
     def get_review_state(self):
         return StateJson()[self.widget_id]["reviewState"]
+
+    def set_default_review_state(self, state: Literal["accept", "reject", "ignore"]):
+        self._default_review_state = state
