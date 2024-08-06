@@ -50,7 +50,16 @@ card.collapse()
 def apply_decision():
     review_states = image_gallery.get_review_state()
     for image in g.image_batches[g.current_batch_idx]:
-        review_state = review_states[str(image[0].id)]
+        try:
+            review_state = review_states[str(image[0].id)]
+        except KeyError:
+            title = "Error in getting review status"
+            descr = f"Please check review status for image {image[0].name} before applying the decision. For now, it will be skipped."
+            sly.app.show_dialog(title, descr, status="error")
+            sly.logger.error(
+                f"Error in getting review status for image {image[0].name}: {image[0].id}. Will be skipped"
+            )
+            continue
         if review_state == "ignore":
             continue
         g.api.labeling_job.set_entity_review_status(

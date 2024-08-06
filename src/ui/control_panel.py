@@ -330,24 +330,33 @@ def group_images_by(
 ):
     grouped_images: List[sly.ImageInfo] = []
     grouped_anns: List[sly.Annotation] = []
+    len_images = len(images)
+    len_anns = len(annotations)
     if group_by == "class":
-        for cls in g.task_project_meta.obj_classes:
-            for idx, (img, ann) in enumerate(zip(images, annotations)):
-                if cls in ann.labels:
-                    grouped_images.append(img)
-                    grouped_anns.append(ann)
-            images.pop(idx)
-            annotations.pop(idx)
+        cond_func = lambda img, ann, cls: cls in [label.obj_class for label in ann.labels]
+        items = g.task_project_meta.obj_classes
     elif group_by == "tag":
-        for tag in g.task_project_meta.tag_metas:
-            for idx, (img, ann) in enumerate(zip(images, annotations)):
-                if tag in img.tags:
-                    grouped_images.append(img)
-                    grouped_anns.append(ann)
-            images.pop(idx)
-            annotations.pop(idx)
-    grouped_images.append(images)
-    grouped_anns.append(annotations)
+        cond_func = lambda img, ann, tag: tag.sly_id in [tag["tagId"] for tag in img.tags]
+        items = g.task_project_meta.tag_metas
+    else:
+        raise NotImplementedError(f"Invalid group_by value: {group_by}")
+
+    for item in items:
+        for idx in range(len(images) - 1, -1, -1):
+            img, ann = images[idx], annotations[idx]
+            if cond_func(img, ann, item):
+                grouped_images.append(img)
+                grouped_anns.append(ann)
+                images.pop(idx)
+                annotations.pop(idx)
+
+    grouped_images.extend(images)
+    grouped_anns.extend(annotations)
+
+    if len_images != len(grouped_images) or len_anns != len(grouped_anns):
+        text = "Some images or annotations were not grouped."
+        sly.app.show_dialog("Warning", text, "warning")
+        sly.logger.warn(text)
     return grouped_images, grouped_anns
 
 
@@ -427,7 +436,7 @@ def load_images_with_annotations():
     calling the API to get images from dataset with annotations,
     building the table with settings.
     """
-
+    g.current_batch_idx = 0
     if g.selected_task is None:
         no_task_message.show()
         return
@@ -472,10 +481,6 @@ def load_images_with_annotations():
         show_dialog_no_images()
         return
 
-    g.review_images_cnt = len(img_ids)
-
-    g.progress = workbench.review_progress(message="Reviewing items...", total=g.review_images_cnt)
-
     anns = g.api.labeling_job.get_annotations(g.task_info.id, img_ids)
 
     if g.settings.all_images:
@@ -485,6 +490,10 @@ def load_images_with_annotations():
             return
 
     images, anns = group_images_by(images, anns, g.settings.group_by)
+
+    # -------------------------------------- Adjust Progress Bar ------------------------------------- #
+    g.review_images_cnt = len(images)
+    g.progress = workbench.review_progress(message="Reviewing images...", total=g.review_images_cnt)
 
     g.image_batches = create_image_batches(images, anns, g.settings.batch_size)
     workbench.image_gallery.set_default_review_state(g.settings.default_decision)
@@ -522,6 +531,7 @@ def update_task_selector():
 def finish_task():
     update_task_selector()
     unlock_control_tab()
+    disable_settings(True)
 
 
 g.finish_cb = finish_task
