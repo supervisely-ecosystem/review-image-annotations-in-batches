@@ -58,7 +58,13 @@
           >
         </div> -->
         <!-- Tags -->
-
+        <div
+          v-if="annotation.image_name && annotation.image_name.length > 0"
+          style="text-align: left; margin-top: 6px"
+        >
+          <span>{{annotation.image_name}}</span>
+          <hr style="opacity: 0.5" />
+        </div>
         <div style="margin-top: 6px; justify-content: center">
           <el-radio-group
             size="small"
@@ -84,18 +90,30 @@
           <span
             v-for="(tagItem, index) in annotation.tags"
             :key="index"
-            style="margin-right: 6px; display: inline-block"
+            style="display: block; margin-left: 37px"
+            :style="index === 0 ? 'display: inline; margin-left: 0; white-space: nowrap' : 'display: block; margin-left: 37px'"
           >
             <i
               class="zmdi zmdi-circle"
-              style="margin-right: 2px"
+              style="margin-right: 2px; vertical-align: middle"
               :style="{color: tagItem.color}"
             ></i>
-            <b style="font-size: 16"
-              >{{ tagItem.title }}<span v-if="tagItem.value"
-                >: {{ tagItem.value }}</span
-              ></b
+            <b
+              style="
+                font-size: 16;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 310px;
+                display: inline-block;
+                vertical-align: middle;
+              "
+              :title="tagItem.value ? `${tagItem.title}: ${tagItem.value}` : tagItem.title"
             >
+              {{ tagItem.title }}<span v-if="tagItem.value"
+                >: {{ tagItem.value }}</span
+              >
+            </b>
           </span>
         </div>
         <div
@@ -113,14 +131,27 @@
           <span
             v-for="(classItem, index) in annotation.classes"
             :key="index"
-            style="margin-right: 6px; display: inline-block"
+            style="display: block; margin-left: 56px"
+            :style="index === 0 ? 'display: inline; margin-left: 0; white-space: nowrap' : 'display: block; margin-left: 56px'"
           >
             <i
               class="zmdi zmdi-circle"
-              style="margin-right: 2px"
+              style="margin-right: 2px; vertical-align: middle"
               :style="{color: classItem.color}"
             ></i>
-            <b style="font-size: 16">{{ classItem.title }}</b>
+            <b
+              style="
+                font-size: 16;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 310px;
+                display: inline-block;
+                vertical-align: middle;
+              "
+              :title="classItem.title"
+              >{{ classItem.title }}</b
+            >
           </span>
         </div>
         <div

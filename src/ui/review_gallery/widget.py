@@ -65,6 +65,7 @@ class ReviewGallery(GridGallery):
             annotations[cell_data["cell_uuid"]] = {
                 "uuid": cell_data["cell_uuid"],
                 "image_id": cell_data["image_id"],
+                "image_name": cell_data["image_name"],
                 "url": cell_data["image_url"],
                 "figures": [label.to_json() for label in cell_data["annotation"].labels],
                 "title": cell_data["title"],
@@ -107,6 +108,7 @@ class ReviewGallery(GridGallery):
             {
                 "image_url": image_info.preview_url,
                 "image_id": image_info.id,
+                "image_name": image_info.name,
                 "annotation": (
                     supervisely.Annotation((1, 1)) if annotation is None else annotation.clone()
                 ),

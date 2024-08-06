@@ -414,6 +414,7 @@ def show_task_info(task_id):
 def unlock_control_tab():
     card.uncollapse()
     card.unlock()
+
     task_selector.enable()
     start_review_button.show()
     change_settings_button.hide()
@@ -520,7 +521,7 @@ def update_task_selector():
     g.on_refresh = True
     load_labeling_tasks()
     task_selector.set(items=g.tasks_names)
-    task_selector.set_value(None)
+    task_selector.set_value(None) #TODO fix case if the task not cleared
     task_dataset_card.hide()
     task_info_card.hide()
 
