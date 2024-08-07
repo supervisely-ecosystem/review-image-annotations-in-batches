@@ -24,6 +24,7 @@ class ReviewGallery(GridGallery):
     ):
         super().__init__(*args, **kwargs)
         self._review_state = {}  # states for active switchers
+        self._tag_values = {}  # values for active tags
         self._default_review_state = default_review_state
         self._edit_tags = edit_tags
 
@@ -39,29 +40,38 @@ class ReviewGallery(GridGallery):
     def _update_annotations(self):
         annotations = {}
         for cell_data in self._data:
+            # ---------------------------------------- Prepare Classes --------------------------------------- #
             figures = [label.to_json() for label in cell_data["annotation"].labels]
             class_titles = list(set(figure["classTitle"] for figure in figures))
             rgb_class_colors = [self._task_meta.get_obj_class(name).color for name in class_titles]
             class_colors = [f"rgb({rgb[0]}, {rgb[1]}, {rgb[2]})" for rgb in rgb_class_colors]
-            class_data = [
+            classes_data = [
                 {"title": title, "color": color} for title, color in zip(class_titles, class_colors)
             ]
-
+            # ----------------------------------------- Prepare Tags ----------------------------------------- #
             img_tags = [
-                {"tagId": tag["tagId"], "value": tag.get("value", None)}
+                {"id": tag["id"], "tag_id": tag["tagId"], "value": tag.get("value", None)}
                 for tag in cell_data["tags"]
             ]
-            tag_titles = [self._task_meta.get_tag_meta_by_id(tag["tagId"]).name for tag in img_tags]
-            rgb_tag_colors = [
-                self._task_meta.get_tag_meta_by_id(tag["tagId"]).color for tag in img_tags
-            ]
-            tag_values = [tag["value"] for tag in img_tags]
-            tag_colors = [f"rgb({rgb[0]}, {rgb[1]}, {rgb[2]})" for rgb in rgb_tag_colors]
-            tag_data = [
-                {"title": title, "color": color, "value": value}
-                for title, color, value in zip(tag_titles, tag_colors, tag_values)
-            ]
 
+            tags_data = []
+            for tag in img_tags:
+                tag_meta = self._task_meta.get_tag_meta_by_id(tag["tag_id"])
+                tags_data.append(
+                    {
+                        "id": tag["id"],
+                        "title": tag_meta.name,
+                        "color": f"rgb({tag_meta.color[0]}, {tag_meta.color[1]}, {tag_meta.color[2]})",
+                        "value": tag["value"],
+                        "type": tag_meta.value_type,
+                        "options": (
+                            tag_meta.possible_values
+                            if tag_meta.value_type == "oneof_string"
+                            else None
+                        ),
+                    }
+                )
+            # -------------------------------------- Prepare Annotation -------------------------------------- #
             annotations[cell_data["cell_uuid"]] = {
                 "uuid": cell_data["cell_uuid"],
                 "image_id": cell_data["image_id"],
@@ -70,8 +80,8 @@ class ReviewGallery(GridGallery):
                 "figures": [label.to_json() for label in cell_data["annotation"].labels],
                 "title": cell_data["title"],
                 "title_url": cell_data["title_url"],
-                "classes": class_data,
-                "tags": tag_data,
+                "classes": classes_data,
+                "tags": tags_data,
             }
             if not cell_data["zoom_to"] is None:
                 zoom_params = {
@@ -124,6 +134,7 @@ class ReviewGallery(GridGallery):
             }
         )
         self._review_state.update({image_info.id: self._default_review_state})
+        self._tag_values.update({tag["id"]: tag.get("value", None) for tag in image_info.tags})
         self._update()
         return cell_uuid
 
@@ -131,7 +142,8 @@ class ReviewGallery(GridGallery):
         self._update_layout()
         self._update_project_meta()
         self._update_annotations()
-        StateJson()[self.widget_id]["reviewState"] = self._review_state
+        StateJson()[self.widget_id]["reviewStates"] = self._review_state
+        StateJson()[self.widget_id]["tagValues"] = self._tag_values
         DataJson().send_changes()
         StateJson().send_changes()
 
@@ -152,11 +164,22 @@ class ReviewGallery(GridGallery):
             },
             "selectedImage": None,
             "activeFigure": None,
-            "reviewState": None,
+            "reviewStates": None,
+            "tagValues": None,
         }
 
-    def get_review_state(self):
-        return StateJson()[self.widget_id]["reviewState"]
+    def get_review_states(self):
+        return StateJson()[self.widget_id]["reviewStates"]
+
+    def get_tag_values(self):
+        return StateJson()[self.widget_id]["tagValues"]
 
     def set_default_review_state(self, state: Literal["accept", "reject", "ignore"]):
         self._default_review_state = state
+
+    def clean_states(self):
+        self._review_state = {}
+        self._tag_values = {}
+        StateJson()[self.widget_id]["reviewStates"] = self._review_state
+        StateJson()[self.widget_id]["tagValues"] = self._tag_values
+        StateJson().send_changes()

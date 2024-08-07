@@ -48,12 +48,12 @@
             off-color="#ff4949"
             on-text=""
             off-text=""
-            :value="state.{{{widget.widget_id}}}.reviewState[annotation.image_id]"
-            @input="state.{{{widget.widget_id}}}.reviewState[annotation.image_id]=$event"
+            :value="state.{{{widget.widget_id}}}.reviewStates[annotation.image_id]"
+            @input="state.{{{widget.widget_id}}}.reviewStates[annotation.image_id]=$event"
           >
           </el-switch>
           <span class="ml5"
-            >{{ state.{{{widget.widget_id}}}.reviewState[annotation.image_id]
+            >{{ state.{{{widget.widget_id}}}.reviewStates[annotation.image_id]
             >?'Accept':'Reject'}}</span
           >
         </div> -->
@@ -68,8 +68,8 @@
         <div style="margin-top: 6px; justify-content: center">
           <el-radio-group
             size="small"
-            :value="state.{{{widget.widget_id}}}.reviewState[annotation.image_id]"
-            @input="state.{{{widget.widget_id}}}.reviewState[annotation.image_id]=$event"
+            :value="state.{{{widget.widget_id}}}.reviewStates[annotation.image_id]"
+            @input="state.{{{widget.widget_id}}}.reviewStates[annotation.image_id]=$event"
           >
             <el-radio-button label="accepted" class="accepted"
               >Accept</el-radio-button
@@ -87,7 +87,7 @@
           style="text-align: left; margin-top: 5px; white-space: normal"
         >
           Tags:
-          <span
+          <!-- <span
             v-for="(tagItem, index) in annotation.tags"
             :key="index"
             style="display: block; margin-left: 37px"
@@ -114,6 +114,96 @@
                 >: {{ tagItem.value }}</span
               >
             </b>
+          </span> -->
+          <span
+            v-for="(tagItem, index) in annotation.tags"
+            :key="index"
+            :style="index === 0 ? 'display: inline; margin-left: 0' : 'display: block; margin-left: 37px'"
+          >
+            <el-popover
+              v-if="tagItem.type !== 'none'"
+              placement="top"
+              trigger="click"
+              v-model="tagItem.showPopover"
+              style="min-width: auto; width: auto"
+              :style="{ maxWidth: '300px', width: 'auto', height: 'auto' }"
+            >
+              <el-input-number
+                v-if="tagItem.type === 'any_number'"
+                v-model="tagItem.value"
+                :min="0"
+                :value="state.{{{widget.widget_id}}}.tagValues[tagItem.id]"
+                @input="state.{{{widget.widget_id}}}.tagValues[tagItem.id]=$event"
+              ></el-input-number>
+              <el-input
+                v-if="tagItem.type === 'any_string'"
+                v-model="tagItem.value"
+                type="textarea"
+                :autosize="{ minRows: 2, maxRows: 6}"
+                placeholder="Input tag value"
+                :value="state.{{{widget.widget_id}}}.tagValues[tagItem.id]"
+                @input="state.{{{widget.widget_id}}}.tagValues[tagItem.id]=$event"
+              ></el-input>
+              <el-select
+                v-if="tagItem.type === 'oneof_string'"
+                v-model="tagItem.value"
+                placeholder="Select tag value"
+                :style="{ minWidth: '100px', maxWidth: '300px', width: 'auto' }"
+                :value="state.{{{widget.widget_id}}}.tagValues[tagItem.id]"
+                @input="state.{{{widget.widget_id}}}.tagValues[tagItem.id]=$event"
+              >
+                <el-option
+                  v-for="option in tagItem.options"
+                  :key="option"
+                  :label="option"
+                  :value="option"
+                ></el-option>
+              </el-select>
+              <el-tag
+                slot="reference"
+                :style="{
+                  display: 'inline-block',
+                  maxWidth: '310px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  fontSize: '12px',
+                  backgroundColor: 'transparent',
+                  border: `2px solid ${tagItem.color}`,
+                  color: 'black',
+                  marginBottom: '2px',
+                }"
+                :effect="tagItem.value ? 'dark' : 'plain'"
+                :title="tagItem.value ? `${tagItem.title}: ${tagItem.value}` : tagItem.title"
+              >
+                {{ tagItem.title }}<span v-if="tagItem.value"
+                  >: {{ tagItem.value }}</span
+                >
+              </el-tag>
+            </el-popover>
+            <el-tag
+              v-if="tagItem.type === 'none'"
+              :style="{
+                  display: 'inline-block',
+                  maxWidth: '310px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  fontSize: '12px',
+                  backgroundColor: 'transparent',
+                  border: `2px solid ${tagItem.color}`,
+                  color: 'black',
+                  marginBottom: '2px',
+                }"
+              :effect="tagItem.value ? 'dark' : 'plain'"
+              :title="tagItem.value ? `${tagItem.title}: ${tagItem.value}` : tagItem.title"
+            >
+              {{ tagItem.title }}<span v-if="tagItem.value"
+                >: {{ tagItem.value }}</span
+              >
+            </el-tag>
           </span>
         </div>
         <div

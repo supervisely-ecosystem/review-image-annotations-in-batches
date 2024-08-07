@@ -48,7 +48,8 @@ card.collapse()
 
 @apply_button.click
 def apply_decision():
-    review_states = image_gallery.get_review_state()
+    review_states = image_gallery.get_review_states()
+    tag_values = image_gallery.get_tag_values()
     for image in g.image_batches[g.current_batch_idx]:
         try:
             review_state = review_states[str(image[0].id)]
@@ -62,16 +63,27 @@ def apply_decision():
             continue
         if review_state == "ignore":
             continue
+        elif review_state == "accepted":
+            for tag_id, value in tag_values[str(image[0].id)].items():
+                g.api.labeling_job.set_image_tag(
+                    g.task_info.id,
+                    image[0].id,
+                    tag_id,
+                    value,
+                )
         g.api.labeling_job.set_entity_review_status(
             g.task_info.id,
             image[0].id,
             review_state,
         )
+
     g.progress.update(len(g.image_batches[g.current_batch_idx]))
     if g.current_batch_idx < len(g.image_batches) - 1:
         g.current_batch_idx += 1
+        image_gallery.clean_states()
         g.populate_gallery_func(image_gallery)
     else:
+        image_gallery.clean_states()
         sly.app.show_dialog(
             "Review process is finished",
             f"{'All' if g.progress.n == g.progress.total else g.progress.n} images have been reviewed",
