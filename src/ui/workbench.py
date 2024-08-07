@@ -48,8 +48,9 @@ card.collapse()
 
 @apply_button.click
 def apply_decision():
-    review_states = image_gallery.get_review_states()
-    tag_values = image_gallery.get_tag_values()
+    review_states: dict = image_gallery.get_review_states()
+    tag_values: dict = image_gallery.get_tag_values()
+    tag_change_states: dict = image_gallery.get_tag_change_states()
     for image in g.image_batches[g.current_batch_idx]:
         try:
             review_state = review_states[str(image[0].id)]
@@ -64,13 +65,14 @@ def apply_decision():
         if review_state == "ignore":
             continue
         elif review_state == "accepted":
-            for tag_id, value in tag_values[str(image[0].id)].items():
-                g.api.labeling_job.set_image_tag(
-                    g.task_info.id,
-                    image[0].id,
-                    tag_id,
-                    value,
-                )
+            changed_tag_ids = list(tag_change_states.keys())
+            for tag_id in changed_tag_ids:
+                if any(d.get("id") == int(tag_id) for d in image[0].tags):
+                    respones = g.api.image.update_tag_value(int(tag_id), value=tag_values[tag_id])
+                    if respones.get("success", False):
+                        sly.logger.info(f"Tag {tag_id} updated successfully")
+                    else:
+                        sly.logger.error(f"Error in updating tag {tag_id}")
         g.api.labeling_job.set_entity_review_status(
             g.task_info.id,
             image[0].id,

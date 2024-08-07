@@ -152,6 +152,14 @@ group_by_radio_group = RadioGroup(items=group_by_radio_group_items, size="large"
 group_by_card = Card(content=group_by_radio_group, title="Group By")
 # ----------------------------------- Image Filtering Settings ----------------------------------- #
 all_images_switcher = Switch(False, on_text="Yes", off_text="No")
+all_images_text_l1 = Text(
+    text="Filtering works simultaneously by tags and classes.",
+    color="#5a6772",
+)
+all_images_text_l2 = Text(
+    text="TIP: If no checkbox is selected in a category, all images lacking these elements will be filtered out.",
+    color="#5a6772",
+)
 task_tags_selector = TagsListSelector(multiple=True)
 task_tags_field = Field(title="by Tags", content=task_tags_selector)
 task_classes_selector = ClassesListSelector(multiple=True)
@@ -159,11 +167,26 @@ task_classes_field = Field(title="by Classes", content=task_classes_selector)
 filter_container = Container(widgets=[task_tags_field, task_classes_field], direction="horizontal")
 filter_container.hide()
 filter_card = Card(
-    "Filter Images", content=Container(widgets=[all_images_switcher, filter_container])
+    "Filter Images",
+    content=Container(
+        widgets=[all_images_text_l1, all_images_text_l2, all_images_switcher, filter_container]
+    ),
 )
 # ------------------------------------- Tags Editing Settings ------------------------------------ #
 tags_editing_switcher = Switch(False, on_text="Yes", off_text="No")
-tags_editing_card = Card("Edit Tags", content=tags_editing_switcher)
+tags_editing_text = Text(
+    text='Editing tags allows you to change the values of tags. Changes will only be applied to the tag of the image if its review status is set to "Accepted"',
+    color="#5a6772",
+)
+tags_editing_card = Card(
+    "Edit Tags",
+    content=Container(
+        widgets=[
+            tags_editing_text,
+            tags_editing_switcher,
+        ]
+    ),
+)
 # -------------------------------------- Acceptance Settings ------------------------------------- #
 acceptance_radio_group_items = [
     RadioGroup.Item(value="accepted", label="Accept"),
@@ -463,6 +486,7 @@ def load_images_with_annotations():
     )
 
     g.settings = get_settings()
+    workbench.image_gallery.edit_tags(g.settings.tags_editing)
 
     img_ids = [entity["id"] for entity in g.task_info.entities if entity["reviewStatus"] == "none"]
     if img_ids == []:
@@ -521,12 +545,17 @@ def update_task_selector():
     g.on_refresh = True
     load_labeling_tasks()
     task_selector.set(items=g.tasks_names)
-    task_selector.set_value(None) #TODO fix case if the task not cleared
+    task_selector.set_value(None)  # TODO fix case if the task not cleared
     task_dataset_card.hide()
     task_info_card.hide()
 
     disable_settings(True)
     g.on_refresh = False
+
+
+@tags_editing_switcher.value_changed
+def set_tags_editing(switched):
+    workbench.image_gallery.edit_tags(switched)
 
 
 def finish_task():

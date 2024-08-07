@@ -121,7 +121,7 @@
             :style="index === 0 ? 'display: inline; margin-left: 0' : 'display: block; margin-left: 37px'"
           >
             <el-popover
-              v-if="tagItem.type !== 'none'"
+              v-if="tagItem.type !== 'none' && state.{{{widget.widget_id}}}.editTags"
               placement="top"
               trigger="click"
               v-model="tagItem.showPopover"
@@ -133,7 +133,7 @@
                 v-model="tagItem.value"
                 :min="0"
                 :value="state.{{{widget.widget_id}}}.tagValues[tagItem.id]"
-                @input="state.{{{widget.widget_id}}}.tagValues[tagItem.id]=$event"
+                @input="(evt) => { state.{{{widget.widget_id}}}.tagValues[tagItem.id]=evt; state.{{{widget.widget_id}}}.tagChangeStates[tagItem.id]=evt}"
               ></el-input-number>
               <el-input
                 v-if="tagItem.type === 'any_string'"
@@ -142,7 +142,7 @@
                 :autosize="{ minRows: 2, maxRows: 6}"
                 placeholder="Input tag value"
                 :value="state.{{{widget.widget_id}}}.tagValues[tagItem.id]"
-                @input="state.{{{widget.widget_id}}}.tagValues[tagItem.id]=$event"
+                @input="(evt) => { state.{{{widget.widget_id}}}.tagValues[tagItem.id]=evt; state.{{{widget.widget_id}}}.tagChangeStates[tagItem.id]=evt}"
               ></el-input>
               <el-select
                 v-if="tagItem.type === 'oneof_string'"
@@ -150,7 +150,7 @@
                 placeholder="Select tag value"
                 :style="{ minWidth: '100px', maxWidth: '300px', width: 'auto' }"
                 :value="state.{{{widget.widget_id}}}.tagValues[tagItem.id]"
-                @input="state.{{{widget.widget_id}}}.tagValues[tagItem.id]=$event"
+                @input="(evt) => { state.{{{widget.widget_id}}}.tagValues[tagItem.id]=evt; state.{{{widget.widget_id}}}.tagChangeStates[tagItem.id]=evt}"
               >
                 <el-option
                   v-for="option in tagItem.options"
@@ -184,6 +184,28 @@
             </el-popover>
             <el-tag
               v-if="tagItem.type === 'none'"
+              :style="{
+                  display: 'inline-block',
+                  maxWidth: '310px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  fontSize: '12px',
+                  backgroundColor: 'transparent',
+                  border: `2px solid ${tagItem.color}`,
+                  color: 'black',
+                  marginBottom: '2px',
+                }"
+              :effect="tagItem.value ? 'dark' : 'plain'"
+              :title="tagItem.value ? `${tagItem.title}: ${tagItem.value}` : tagItem.title"
+            >
+              {{ tagItem.title }}<span v-if="tagItem.value"
+                >: {{ tagItem.value }}</span
+              >
+            </el-tag>
+            <el-tag
+              v-if="tagItem.type !== 'none' && !state.{{{widget.widget_id}}}.editTags"
               :style="{
                   display: 'inline-block',
                   maxWidth: '310px',
