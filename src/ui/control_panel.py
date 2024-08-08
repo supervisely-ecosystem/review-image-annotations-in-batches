@@ -111,37 +111,37 @@ filter_card = Card(
     ),
 )
 # ------------------------------------- Update Labeling Task ------------------------------------- #
-if g.selected_task:
-    # If the app was loaded from a context menu.
-    sly.logger.debug("App was loaded from a context menu.")
+# if g.selected_task:
+#     # If the app was loaded from a context menu.
+#     sly.logger.debug("App was loaded from a context menu.")
 
-    # Setting values to the widgets from environment variables.
-    task_selector = Select(items=g.tasks_names, placeholder="Select Labeling Task")
-    task_selector.set_value(g.selected_task)
+#     # Setting values to the widgets from environment variables.
+#     task_selector = Select(items=g.tasks_names, placeholder="Select Labeling Task")
+#     task_selector.set_value(g.selected_task)
 
-    # Creating a dataset thumbnail to show.
-    g.task_info = g.api.labeling_job.get_info_by_id(g.selected_task)
+#     # Creating a dataset thumbnail to show.
+#     g.task_info = g.api.labeling_job.get_info_by_id(g.selected_task)
 
-    if g.task_info.labeling_queue_id is not None:
-        text = "This task is in the queue. Queue tasks are not supported."
-        sly.app.show_dialog("Warning", text, "warning")
-        sly.logger.warn(text)
-        task_selector.set_value(None)
+#     if g.task_info.labeling_queue_id is not None:
+#         text = "This task is in the queue. Queue tasks are not supported."
+#         sly.app.show_dialog("Warning", text, "warning")
+#         sly.logger.warn(text)
+#         task_selector.set_value(None)
 
-    else:
-        dataset_thumbnail.set(
-            g.api.project.get_info_by_id(g.task_info.project_id),
-            g.api.dataset.get_info_by_id(g.task_info.dataset_id),
-        )
-        task_dataset_card.show()
+#     else:
+#         dataset_thumbnail.set(
+#             g.api.project.get_info_by_id(g.task_info.project_id),
+#             g.api.dataset.get_info_by_id(g.task_info.dataset_id),
+#         )
+#         task_dataset_card.show()
 
-        workbench.card.unlock()
-        workbench.card.uncollapse()
-else:
-    # If the app was loaded from ecosystem: showing the Labeling Task selector in full mode.
-    sly.logger.debug("App was loaded from ecosystem.")
-    task_selector = Select(g.tasks_names, placeholder="Select Labeling Task")
-    task_selector.set_value(None)
+#         workbench.card.unlock()
+#         workbench.card.uncollapse()
+# else:
+# If the app was loaded from ecosystem: showing the Labeling Task selector in full mode.
+sly.logger.debug("App was loaded from ecosystem.")
+task_selector = Select(g.tasks_names, placeholder="Select Labeling Task")
+task_selector.set_value(None)
 
 # ---------------------------------- GUI Labeling Task Selector ---------------------------------- #
 refresh_button = Button("", icon="zmdi zmdi-refresh", button_size="small", plain=True)

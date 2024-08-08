@@ -4,13 +4,10 @@
   "name": "Review Image Annotations in Batches",
   "description": "Allows you to review the results of annotations in a user interface adapted for such tasks.",
   "docker_image": "supervisely/base-py-sdk:6.73.150",
-  "categories": ["images", "labelling", "collaboration"],
+  "categories": ["images", "collaboration"],
   "headless": false,
   "entrypoint": "python -m uvicorn src.main:app --host 0.0.0.0 --port 8000",
   "port": 8000,
-  "context_menu": {
-    "target": ["ecosystem", "labeling_job"]
-  },
   "icon": "https://i.imgur.com/4DQxmL0.png",
   "icon_cover": true,
   "poster": "https://github.com/supervisely-ecosystem/render-previews-app/assets/119248312/c549392d-a81f-40c0-8ddd-5ddcc1850c81"
