@@ -8,6 +8,7 @@ from supervisely.app.widgets import (
     ClassesListSelector,
     Container,
     DatasetThumbnail,
+    Empty,
     Field,
     InputNumber,
     RadioGroup,
@@ -21,8 +22,10 @@ import src.globals as g
 import src.ui.workbench as workbench
 
 
+@sly.handle_exceptions
 @sly.timeit
 def load_labeling_tasks():
+    g.tasks_names = None
     filtered_projects = []
     workspace_project_ids = defaultdict(list)
     g.labeling_tasks_list = g.api.labeling_job.get_list(
@@ -60,7 +63,6 @@ task_dataset_card = Card(content=dataset_thumbnail, title="Related Dataset")
 task_dataset_card.hide()
 
 start_review_button = Button("Start Review")
-# start_review_button.disable()
 change_settings_button = Button("Change Settings", icon="zmdi zmdi-lock-open")
 change_settings_button.hide()
 
@@ -69,31 +71,72 @@ no_task_message = Text(
     status="warning",
 )
 no_task_message.hide()
+# -------------------------------------- GUI Task Info Card -------------------------------------- #
+# TODO add more info and update formatting
+task_info_widgets = [
+    Text("ID:"),
+    Text("Created by: "),
+    Text("Assigned to: "),
+    Text("Reviewer: "),
+    Text("Status: "),
+    Text("Finished images: "),
+    Text("Classes to label: "),
+    Text("Tags to label: "),
+    Text("Description: "),
+]
 
+task_info_card = Card("Task info", content=Container(widgets=task_info_widgets))
+task_info_card.hide()
+
+# ----------------------------------- Image Filtering Settings ----------------------------------- #
+all_images_switcher = Switch(False, on_text="Yes", off_text="No")
+all_images_text_l1 = Text(
+    text="Filtering works simultaneously by tags and classes",
+    color="#5a6772",
+)
+all_images_text_l2 = Text(
+    text="TIP: If no checkbox is selected in a category, all images lacking these elements will be filtered out",
+    color="#5a6772",
+)
+task_tags_selector = TagsListSelector(multiple=True)
+task_tags_field = Field(title="by Tags", content=task_tags_selector)
+task_classes_selector = ClassesListSelector(multiple=True)
+task_classes_field = Field(title="by Classes", content=task_classes_selector)
+filter_container = Container(widgets=[task_tags_field, task_classes_field], direction="horizontal")
+filter_container.hide()
+filter_card = Card(
+    "Filter Images",
+    content=Container(
+        widgets=[all_images_text_l1, all_images_text_l2, all_images_switcher, filter_container]
+    ),
+)
 # ------------------------------------- Update Labeling Task ------------------------------------- #
 if g.selected_task:
     # If the app was loaded from a context menu.
     sly.logger.debug("App was loaded from a context menu.")
 
     # Setting values to the widgets from environment variables.
-    task_selector = Select(items=g.tasks_names)
+    task_selector = Select(items=g.tasks_names, placeholder="Select Labeling Task")
     task_selector.set_value(g.selected_task)
-
-    # Hiding unnecessary widgets.
-    # task_selector.hide()
-    # start_review_button.hide()  # TODO set logic
 
     # Creating a dataset thumbnail to show.
     g.task_info = g.api.labeling_job.get_info_by_id(g.selected_task)
 
-    dataset_thumbnail.set(
-        g.api.project.get_info_by_id(g.task_info.project_id),
-        g.api.dataset.get_info_by_id(g.task_info.dataset_id),
-    )
-    task_dataset_card.show()
+    if g.task_info.labeling_queue_id is not None:
+        text = "This task is in the queue. Queue tasks are not supported."
+        sly.app.show_dialog("Warning", text, "warning")
+        sly.logger.warn(text)
+        task_selector.set_value(None)
 
-    workbench.card.unlock()
-    workbench.card.uncollapse()
+    else:
+        dataset_thumbnail.set(
+            g.api.project.get_info_by_id(g.task_info.project_id),
+            g.api.dataset.get_info_by_id(g.task_info.dataset_id),
+        )
+        task_dataset_card.show()
+
+        workbench.card.unlock()
+        workbench.card.uncollapse()
 else:
     # If the app was loaded from ecosystem: showing the Labeling Task selector in full mode.
     sly.logger.debug("App was loaded from ecosystem.")
@@ -111,21 +154,7 @@ task_selector_container = Container(
 )
 
 # -------------------------------------- GUI Task Info Card -------------------------------------- #
-# TODO add more info to the card
-task_info_widgets = [
-    Text("ID:"),
-    Text("Created by: "),
-    Text("Assigned to: "),
-    Text("Reviewer: "),
-    Text("Status: "),
-    Text("Finished images: "),
-    Text("Classes to label: "),
-    Text("Tags to label: "),
-    Text("Description: "),
-]
 
-task_info_card = Card("Task info", content=Container(widgets=task_info_widgets))
-task_info_card.hide()
 
 task_info_container = Container(widgets=[task_dataset_card, task_info_card], gap=0)
 
@@ -157,29 +186,6 @@ group_by_card = Card(
         ]
     ),
     title="Group by",
-)
-
-# ----------------------------------- Image Filtering Settings ----------------------------------- #
-all_images_switcher = Switch(False, on_text="Yes", off_text="No")
-all_images_text_l1 = Text(
-    text="Filtering works simultaneously by tags and classes",
-    color="#5a6772",
-)
-all_images_text_l2 = Text(
-    text="TIP: If no checkbox is selected in a category, all images lacking these elements will be filtered out",
-    color="#5a6772",
-)
-task_tags_selector = TagsListSelector(multiple=True)
-task_tags_field = Field(title="by Tags", content=task_tags_selector)
-task_classes_selector = ClassesListSelector(multiple=True)
-task_classes_field = Field(title="by Classes", content=task_classes_selector)
-filter_container = Container(widgets=[task_tags_field, task_classes_field], direction="horizontal")
-filter_container.hide()
-filter_card = Card(
-    "Filter Images",
-    content=Container(
-        widgets=[all_images_text_l1, all_images_text_l2, all_images_switcher, filter_container]
-    ),
 )
 
 # ------------------------------------- Tags Editing Settings ------------------------------------ #
@@ -261,7 +267,7 @@ card = Card(
         widgets=[
             input_container,
             no_task_message,
-            start_review_button,
+            Container(widgets=[Empty(), start_review_button]),
         ]
     ),
     content_top_right=change_settings_button,
@@ -270,6 +276,8 @@ card = Card(
 
 
 # ------------------------------------------- Functions ------------------------------------------ #
+@sly.handle_exceptions
+@sly.timeit
 def disable_settings(disable):
     if disable:
         batch_size_input.disable()
@@ -293,6 +301,8 @@ def disable_settings(disable):
         acceptance_radio_group.enable()
 
 
+@sly.handle_exceptions
+@sly.timeit
 def create_image_batches(
     img_infos: List[sly.ImageInfo],
     anns: List[sly.Annotation],
@@ -303,12 +313,16 @@ def create_image_batches(
     return batches
 
 
+@sly.handle_exceptions
+@sly.timeit
 def populate_gallery(gallery_widget: workbench.ReviewGallery):
     gallery_widget.clean_up()
     for image in g.image_batches[g.current_batch_idx]:
         gallery_widget.append(image[0], image[1], project_meta=g.task_project_meta)
 
 
+@sly.handle_exceptions
+@sly.timeit
 def show_dialog_no_images():
     text = "No images found with the specified filters."
     sly.app.show_dialog("Warning", text, "warning")
@@ -316,6 +330,8 @@ def show_dialog_no_images():
     unlock_control_tab()
 
 
+@sly.handle_exceptions
+@sly.timeit
 def get_settings():
     settings = g.Settings(
         batch_size=batch_size_input.value,
@@ -330,6 +346,7 @@ def get_settings():
     return settings
 
 
+@sly.handle_exceptions
 @sly.timeit
 def filter_images_by_tags(images: List[sly.ImageInfo], tags: List[str]):
     if tags == []:
@@ -343,6 +360,7 @@ def filter_images_by_tags(images: List[sly.ImageInfo], tags: List[str]):
     return filtered_images
 
 
+@sly.handle_exceptions
 @sly.timeit
 def filter_image_anns(
     img_infos: List[sly.ImageInfo],
@@ -367,6 +385,7 @@ def filter_image_anns(
     return filtered_imgs, filtered_anns
 
 
+@sly.handle_exceptions
 @sly.timeit
 def group_images_by(
     images: List[sly.ImageInfo],
@@ -410,16 +429,19 @@ g.populate_gallery_func = populate_gallery
 
 
 # ---------------------------------------- Event Handlers --------------------------------------- #
+@sly.handle_exceptions
+@sly.timeit
 @task_selector.value_changed
 def show_task_info(task_id):
     """Handles the Labeling Task selector value change event.
     Showing the dataset thumbnail when the Labeling Task is selected.
     """
 
-    if not task_id or g.on_refresh:
+    if task_id is None or g.on_refresh:
         # If the Labeling Task is not chosen, hiding the dataset thumbnail.
         task_dataset_card.hide()
         task_info_card.hide()
+        sly.logger.debug("Task selector set to None")
         return
 
     no_task_message.hide()
@@ -460,6 +482,8 @@ def show_task_info(task_id):
     start_review_button.enable()
 
 
+@sly.handle_exceptions
+@sly.timeit
 @change_settings_button.click
 def unlock_control_tab():
     card.uncollapse()
@@ -471,8 +495,11 @@ def unlock_control_tab():
     workbench.image_gallery.clean_up()
     workbench.card.lock()
     workbench.card.collapse()
+    g.progress.close()
 
 
+@sly.handle_exceptions
+@sly.timeit
 @start_review_button.click
 def load_images_with_annotations():
     """Handles the load button click event.
@@ -508,7 +535,11 @@ def load_images_with_annotations():
     g.settings = get_settings()
     workbench.image_gallery.edit_tags(g.settings.tags_editing)
 
-    img_ids = [entity["id"] for entity in g.task_info.entities if entity["reviewStatus"] == "none"]
+    img_ids = [
+        entity["id"]
+        for entity in g.task_info.entities
+        if entity["reviewStatus"] in g.accepted_statuses_for_review
+    ]
     if img_ids == []:
         show_dialog_no_images()
         return
@@ -552,6 +583,8 @@ def load_images_with_annotations():
     card.collapse()
 
 
+@sly.handle_exceptions
+@sly.timeit
 @all_images_switcher.value_changed
 def show_filters(switched):
     if not switched:
@@ -560,6 +593,8 @@ def show_filters(switched):
         filter_container.show()
 
 
+@sly.handle_exceptions
+@sly.timeit
 @refresh_button.click
 def update_task_selector():
     g.on_refresh = True
@@ -573,11 +608,15 @@ def update_task_selector():
     g.on_refresh = False
 
 
+@sly.handle_exceptions
+@sly.timeit
 @tags_editing_switcher.value_changed
 def set_tags_editing(switched):
     workbench.image_gallery.edit_tags(switched)
 
 
+@sly.handle_exceptions
+@sly.timeit
 def finish_task():
     update_task_selector()
     unlock_control_tab()

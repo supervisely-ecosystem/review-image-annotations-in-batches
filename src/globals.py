@@ -43,4 +43,5 @@ progress = None
 finish_cb = None
 labeling_tasks_list = None
 tasks_names = None
+accepted_statuses_for_review = ["done", "none"]  # TODO remove none
 # ----------------------------------------------- - ---------------------------------------------- #

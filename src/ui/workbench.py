@@ -46,6 +46,8 @@ card.lock()
 card.collapse()
 
 
+@sly.handle_exceptions
+@sly.timeit
 @apply_button.click
 def apply_decision():
     review_states: dict = image_gallery.get_review_states()
