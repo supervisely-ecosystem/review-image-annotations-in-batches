@@ -24,16 +24,17 @@ import src.ui.workbench as workbench
 
 @sly.handle_exceptions
 @sly.timeit
-def load_labeling_tasks():
-    g.tasks_names = None
+def load_labeling_jobs():
+    g.jobs_names = None
+    g.labeling_jobs_list = None
     filtered_projects = []
     workspace_project_ids = defaultdict(list)
-    g.labeling_tasks_list = g.api.labeling_job.get_list(
+    g.labeling_jobs_list = g.api.labeling_job.get_list(
         team_id=sly.env.team_id(), reviewer_id=sly.env.user_id(), is_part_of_queue=False
     )
-    # -------------------------- Filter Tasks With Projects Of "images" Type ------------------------- #
-    for task in g.labeling_tasks_list:
-        workspace_project_ids[task.workspace_id].append(task.project_id)
+    # -------------------------- Filter Jobs With Projects Of "images" Type ------------------------- #
+    for job in g.labeling_jobs_list:
+        workspace_project_ids[job.workspace_id].append(job.project_id)
     for workspace_id, project_ids in workspace_project_ids.items():
         project_infos = g.api.project.get_list(
             workspace_id=workspace_id,
@@ -42,51 +43,54 @@ def load_labeling_tasks():
         for info in project_infos:
             if info.type == "images":
                 filtered_projects.append(info.id)
-    filtered_tasks = [
-        task_info
-        for task_info in g.labeling_tasks_list
-        if task_info.project_id in filtered_projects
+    filtered_jobs = [
+        job_info for job_info in g.labeling_jobs_list if job_info.project_id in filtered_projects
     ]
     # ---------------------------------------- Update Globals ---------------------------------------- #
-    g.labeling_tasks_list = filtered_tasks
-    g.tasks_names = [
-        Select.Item(labeling_task.id, labeling_task.name) for labeling_task in g.labeling_tasks_list
-    ]
-    sly.logger.debug(f"Loaded {len(g.labeling_tasks_list)} Labeling Tasks.")
+    g.labeling_jobs_list = filtered_jobs
+    g.jobs_names = [Select.Item(None, "Select Labeling Job")]
+    g.jobs_names.extend(
+        [Select.Item(labeling_job.id, labeling_job.name) for labeling_job in g.labeling_jobs_list]
+    )
+    sly.logger.debug(f"Loaded {len(g.labeling_jobs_list)} Labeling Jobs.")
 
 
-load_labeling_tasks()
+load_labeling_jobs()
 
-# ------------------------------------ GUI Labeling Task Card ------------------------------------ #
+
+# ------------------------------------- Update Labeling Jobs ------------------------------------- #
+sly.logger.debug("App was loaded from ecosystem.")
+job_selector = Select(g.jobs_names, placeholder="Select Labeling Job")
+job_selector.set_value(None)
+
+# ------------------------------------ GUI Labeling Jobs Card ------------------------------------ #
 dataset_thumbnail = DatasetThumbnail()
-task_dataset_card = Card(content=dataset_thumbnail, title="Related Dataset")
-task_dataset_card.hide()
+job_dataset_card = Card(content=dataset_thumbnail, title="Related Dataset")
+job_dataset_card.hide()
 
 start_review_button = Button("Start Review")
 change_settings_button = Button("Change Settings", icon="zmdi zmdi-lock-open")
 change_settings_button.hide()
 
-no_task_message = Text(
-    "Please, select a Labeling Task before clicking the button.",
+no_job_message = Text(
+    "Please, select a Labeling Job before clicking the button.",
     status="warning",
 )
-no_task_message.hide()
-# -------------------------------------- GUI Task Info Card -------------------------------------- #
-# TODO add more info and update formatting
-task_info_widgets = [
+no_job_message.hide()
+# -------------------------------------- GUI Job Info Card -------------------------------------- #
+job_info_widgets = [
     Text("ID:"),
     Text("Created by: "),
     Text("Assigned to: "),
     Text("Reviewer: "),
     Text("Status: "),
-    Text("Finished images: "),
     Text("Classes to label: "),
     Text("Tags to label: "),
     Text("Description: "),
 ]
 
-task_info_card = Card("Task info", content=Container(widgets=task_info_widgets))
-task_info_card.hide()
+job_info_card = Card("Info", content=Container(widgets=job_info_widgets))
+job_info_card.hide()
 
 # ----------------------------------- Image Filtering Settings ----------------------------------- #
 all_images_switcher = Switch(False, on_text="Yes", off_text="No")
@@ -98,11 +102,11 @@ all_images_text_l2 = Text(
     text="TIP: If no checkbox is selected in a category, all images lacking these elements will be filtered out",
     color="#5a6772",
 )
-task_tags_selector = TagsListSelector(multiple=True)
-task_tags_field = Field(title="by Tags", content=task_tags_selector)
-task_classes_selector = ClassesListSelector(multiple=True)
-task_classes_field = Field(title="by Classes", content=task_classes_selector)
-filter_container = Container(widgets=[task_tags_field, task_classes_field], direction="horizontal")
+job_tags_selector = TagsListSelector(multiple=True)
+job_tags_field = Field(title="by Tags", content=job_tags_selector)
+job_classes_selector = ClassesListSelector(multiple=True)
+job_classes_field = Field(title="by Classes", content=job_classes_selector)
+filter_container = Container(widgets=[job_tags_field, job_classes_field], direction="horizontal")
 filter_container.hide()
 filter_card = Card(
     "Filter Images",
@@ -110,56 +114,26 @@ filter_card = Card(
         widgets=[all_images_text_l1, all_images_text_l2, all_images_switcher, filter_container]
     ),
 )
-# ------------------------------------- Update Labeling Task ------------------------------------- #
-# if g.selected_task:
-#     # If the app was loaded from a context menu.
-#     sly.logger.debug("App was loaded from a context menu.")
 
-#     # Setting values to the widgets from environment variables.
-#     task_selector = Select(items=g.tasks_names, placeholder="Select Labeling Task")
-#     task_selector.set_value(g.selected_task)
-
-#     # Creating a dataset thumbnail to show.
-#     g.task_info = g.api.labeling_job.get_info_by_id(g.selected_task)
-
-#     if g.task_info.labeling_queue_id is not None:
-#         text = "This task is in the queue. Queue tasks are not supported."
-#         sly.app.show_dialog("Warning", text, "warning")
-#         sly.logger.warn(text)
-#         task_selector.set_value(None)
-
-#     else:
-#         dataset_thumbnail.set(
-#             g.api.project.get_info_by_id(g.task_info.project_id),
-#             g.api.dataset.get_info_by_id(g.task_info.dataset_id),
-#         )
-#         task_dataset_card.show()
-
-#         workbench.card.unlock()
-#         workbench.card.uncollapse()
-# else:
-# If the app was loaded from ecosystem: showing the Labeling Task selector in full mode.
-sly.logger.debug("App was loaded from ecosystem.")
-task_selector = Select(g.tasks_names, placeholder="Select Labeling Task")
-task_selector.set_value(None)
-
-# ---------------------------------- GUI Labeling Task Selector ---------------------------------- #
-refresh_button = Button("", icon="zmdi zmdi-refresh", button_size="small", plain=True)
-task_selector_container = Container(
-    widgets=[task_selector, refresh_button],
+# ---------------------------------- GUI Labeling Job Selector ---------------------------------- #
+refresh_button = Button(
+    "", icon="zmdi zmdi-refresh", button_size="small", plain=True, show_loading=False
+)
+job_selector_container = Container(
+    widgets=[job_selector, refresh_button],
     gap=4,
     direction="horizontal",
     overflow="wrap",
     fractions=[["0 1 auto"], ["0 1 auto"]],
 )
 
-# -------------------------------------- GUI Task Info Card -------------------------------------- #
+# -------------------------------------- GUI Job Info Card -------------------------------------- #
 
 
-task_info_container = Container(widgets=[task_dataset_card, task_info_card], gap=0)
+job_info_container = Container(widgets=[job_dataset_card, job_info_card], gap=0)
 
-data_container = Container(widgets=[task_selector_container, task_info_container])
-data_card = Card("Labeling Task", content=data_container)
+data_container = Container(widgets=[job_selector_container, job_info_container])
+data_card = Card("Labeling Job", content=data_container)
 
 # -------------------------------------- Batch Size Settings ------------------------------------- #
 batch_size_input = InputNumber(4, min=4, max=100)
@@ -262,13 +236,14 @@ input_container = Container(
 # Input card with all widgets.
 card = Card(
     "⚙️ Control Panel",
-    description="Select the task to be reviewed and how to display its data on the Workbench",
+    description="Select Labeling Job to be reviewed and how to display its data on the Workbench",
     content=Container(
         widgets=[
             input_container,
-            no_task_message,
-            Container(widgets=[Empty(), start_review_button]),
-        ]
+            no_job_message,
+            Container(widgets=[start_review_button]),
+        ],
+        style="align-items: flex-end;",
     ),
     content_top_right=change_settings_button,
     collapsable=True,
@@ -282,22 +257,22 @@ def disable_settings(disable):
     if disable:
         batch_size_input.disable()
         group_by_radio_group.disable()
-        task_tags_field.disable()
-        task_classes_field.disable()
+        job_tags_field.disable()
+        job_classes_field.disable()
         all_images_switcher.disable()
         tags_editing_switcher.disable()
-        task_tags_selector.disable()
-        task_classes_selector.disable()
+        job_tags_selector.disable()
+        job_classes_selector.disable()
         acceptance_radio_group.disable()
     else:
         batch_size_input.enable()
         group_by_radio_group.enable()
-        task_tags_field.enable()
-        task_classes_field.enable()
+        job_tags_field.enable()
+        job_classes_field.enable()
         all_images_switcher.enable()
         tags_editing_switcher.enable()
-        task_tags_selector.enable()
-        task_classes_selector.enable()
+        job_tags_selector.enable()
+        job_classes_selector.enable()
         acceptance_radio_group.enable()
 
 
@@ -318,7 +293,7 @@ def create_image_batches(
 def populate_gallery(gallery_widget: workbench.ReviewGallery):
     gallery_widget.clean_up()
     for image in g.image_batches[g.current_batch_idx]:
-        gallery_widget.append(image[0], image[1], project_meta=g.task_project_meta)
+        gallery_widget.append(image[0], image[1], project_meta=g.job_project_meta)
 
 
 @sly.handle_exceptions
@@ -336,8 +311,8 @@ def get_settings():
     settings = g.Settings(
         batch_size=batch_size_input.value,
         group_by=group_by_radio_group.get_value(),
-        tags=task_tags_selector.get_selected_tags(),
-        classes=task_classes_selector.get_selected_classes(),
+        tags=job_tags_selector.get_selected_tags(),
+        classes=job_classes_selector.get_selected_classes(),
         all_images=all_images_switcher.is_on(),
         tags_editing=tags_editing_switcher.is_on(),
         default_decision=acceptance_radio_group.get_value(),
@@ -398,10 +373,10 @@ def group_images_by(
     len_anns = len(annotations)
     if group_by == "class":
         cond_func = lambda img, ann, cls: cls in [label.obj_class for label in ann.labels]
-        items = g.task_project_meta.obj_classes
+        items = g.job_project_meta.obj_classes
     elif group_by == "tag":
         cond_func = lambda img, ann, tag: tag.sly_id in [tag["tagId"] for tag in img.tags]
-        items = g.task_project_meta.tag_metas
+        items = g.job_project_meta.tag_metas
     else:
         raise NotImplementedError(f"Invalid group_by value: {group_by}")
 
@@ -429,102 +404,100 @@ g.populate_gallery_func = populate_gallery
 
 
 # ---------------------------------------- Event Handlers --------------------------------------- #
-@sly.handle_exceptions
-@sly.timeit
-@task_selector.value_changed
-def show_task_info(task_id):
-    """Handles the Labeling Task selector value change event.
-    Showing the dataset thumbnail when the Labeling Task is selected.
-    """
 
-    if task_id is None or g.on_refresh:
-        # If the Labeling Task is not chosen, hiding the dataset thumbnail.
-        task_dataset_card.hide()
-        task_info_card.hide()
-        sly.logger.debug("Task selector set to None")
+
+@sly.timeit
+@job_selector.value_changed
+def show_job_info(job_id):
+    """Handles the Labeling Job selector value change event.
+    Showing the dataset thumbnail when the Labeling Job is selected.
+    """
+    disable_settings(True)
+    if job_id is None or g.on_refresh:
+        # If the Labeling Job is not chosen, hiding the dataset thumbnail.
+        job_dataset_card.hide()
+        job_info_card.hide()
+        sly.logger.debug("Labeling Job selector set to None")
         return
 
-    no_task_message.hide()
+    no_job_message.hide()
 
     # Changing the values of the global variables to access them from other modules.
-    g.selected_task = task_id
+    g.selected_job = job_id
 
-    # Showing the dataset thumbnail when the Labeling Task is selected.
-    g.task_info = g.api.labeling_job.get_info_by_id(task_id)
-    selected_dataset = g.task_info.dataset_id
-    selected_project = g.task_info.project_id
+    # Showing the dataset thumbnail when the Labeling Job is selected.
+    g.job_info = g.api.labeling_job.get_info_by_id(job_id)
+    selected_dataset = g.job_info.dataset_id
+    selected_project = g.job_info.project_id
 
     dataset_thumbnail.set(
         g.api.project.get_info_by_id(selected_project),
         g.api.dataset.get_info_by_id(selected_dataset),
     )
 
-    cleaned_classes = [cls.strip("'") for cls in g.task_info.classes_to_label]
-    cleaned_tags = [tag.strip("'") for tag in g.task_info.tags_to_label]
+    cleaned_classes = [cls.strip("'") for cls in g.job_info.classes_to_label]
+    cleaned_tags = [tag.strip("'") for tag in g.job_info.tags_to_label]
 
-    task_info_widgets[0].text = f"ID: {g.task_info.id}"
-    task_info_widgets[1].text = f"Created by: {g.task_info.created_by_login}"
-    task_info_widgets[2].text = f"Assigned to: {g.task_info.assigned_to_login}"
-    task_info_widgets[3].text = f"Reviewer: {g.task_info.reviewer_login}"
-    task_info_widgets[4].text = f"Status: {g.task_info.status}"
-    task_info_widgets[5].text = f"Finished images: {g.task_info.finished_images_count}"
-    task_info_widgets[6].text = f"Classes to label: {', '.join(cleaned_classes)}"
-    task_info_widgets[7].text = f"Tags to label: {', '.join(cleaned_tags)}"
-    task_info_widgets[8].text = f"Description: {g.task_info.description}"
+    job_info_widgets[0].text = f"ID: {g.job_info.id}"
+    job_info_widgets[1].text = f"Created by: {g.job_info.created_by_login}"
+    job_info_widgets[2].text = f"Assigned to: {g.job_info.assigned_to_login}"
+    job_info_widgets[3].text = f"Reviewer: {g.job_info.reviewer_login}"
+    job_info_widgets[4].text = f"Status: {g.job_info.status}"
+    job_info_widgets[5].text = f"Classes to label: {', '.join(cleaned_classes)}"
+    job_info_widgets[6].text = f"Tags to label: {', '.join(cleaned_tags)}"
+    job_info_widgets[7].text = f"Description: {g.job_info.description}"
 
-    g.task_project_meta = g.api.labeling_job.get_project_meta(g.selected_task)
-    task_classes_selector.set(g.task_project_meta.obj_classes)
-    task_tags_selector.set(g.task_project_meta.tag_metas)
+    g.job_project_meta = g.api.labeling_job.get_project_meta(g.selected_job)
+    job_classes_selector.set(g.job_project_meta.obj_classes)
+    job_tags_selector.set(g.job_project_meta.tag_metas)
 
-    task_dataset_card.show()
-    task_info_card.show()
+    job_dataset_card.show()
+    job_info_card.show()
     disable_settings(False)
-    start_review_button.enable()
 
 
-@sly.handle_exceptions
 @sly.timeit
 @change_settings_button.click
 def unlock_control_tab():
     card.uncollapse()
     card.unlock()
 
-    task_selector.enable()
+    job_selector.enable()
     start_review_button.show()
     change_settings_button.hide()
-    workbench.image_gallery.clean_up()
+    g.image_gallery.clean_up()
     workbench.card.lock()
     workbench.card.collapse()
     g.progress.close()
+    workbench.finish_button_container.hide()
+    workbench.apply_button_container.show()
 
 
-@sly.handle_exceptions
 @sly.timeit
 @start_review_button.click
-def load_images_with_annotations():
+def start_review():
     """Handles the load button click event.
-    Reading values from the Select Labeling Task widget,
+    Reading values from the Select Labeling Job widget,
     calling the API to get images from dataset with annotations,
     building the table with settings.
     """
     g.current_batch_idx = 0
-    if g.selected_task is None:
-        no_task_message.show()
+    if g.selected_job is None:
+        no_job_message.show()
         return
 
-    # Disabling the Labeling Task selector and the load button.
-    task_selector.disable()
-    start_review_button.hide()
+    # Disabling the Labeling Job selector and the load button.
+    job_selector.disable()
 
     # Showing the button for unlocking the dataset selector and showing start button.
     change_settings_button.show()
 
-    sly.logger.debug(f"Calling API with Labeling Task ID {g.selected_task} to get dataset ID.")
-    g.task_info = g.api.labeling_job.get_info_by_id(g.selected_task)
-    g.task_project_meta = g.api.labeling_job.get_project_meta(g.selected_task)
-    selected_dataset = g.task_info.dataset_id
-    selected_project = g.task_info.project_id
-    g.images_list = g.task_info.entities
+    sly.logger.debug(f"Calling API with Labeling Job ID {g.selected_job} to get dataset ID.")
+    g.job_info = g.api.labeling_job.get_info_by_id(g.selected_job)
+    g.job_project_meta = g.api.labeling_job.get_project_meta(g.selected_job)
+    selected_dataset = g.job_info.dataset_id
+    selected_project = g.job_info.project_id
+    g.images_list = g.job_info.entities
 
     sly.logger.debug(
         "Recived IDs from the API. "
@@ -533,11 +506,11 @@ def load_images_with_annotations():
     )
 
     g.settings = get_settings()
-    workbench.image_gallery.edit_tags(g.settings.tags_editing)
+    g.image_gallery.edit_tags(g.settings.tags_editing)
 
     img_ids = [
         entity["id"]
-        for entity in g.task_info.entities
+        for entity in g.job_info.entities
         if entity["reviewStatus"] in g.accepted_statuses_for_review
     ]
     if img_ids == []:
@@ -545,7 +518,7 @@ def load_images_with_annotations():
         return
 
     images = g.api.image.get_list(
-        g.task_info.dataset_id,
+        g.job_info.dataset_id,
         filters=[{"field": "id", "operator": "in", "value": img_ids}],
     )
 
@@ -557,7 +530,7 @@ def load_images_with_annotations():
         show_dialog_no_images()
         return
 
-    anns = g.api.labeling_job.get_annotations(g.task_info.id, img_ids)
+    anns = g.api.labeling_job.get_annotations(g.job_info.id, img_ids)
 
     if g.settings.all_images:
         images, anns = filter_image_anns(images, anns, g.settings)
@@ -572,18 +545,18 @@ def load_images_with_annotations():
     g.progress = workbench.review_progress(message="Reviewing images...", total=g.review_images_cnt)
 
     g.image_batches = create_image_batches(images, anns, g.settings.batch_size)
-    workbench.image_gallery.set_default_review_state(g.settings.default_decision)
+    g.image_gallery.set_default_review_state(g.settings.default_decision)
     for image in g.image_batches[g.current_batch_idx]:
-        workbench.image_gallery.append(image[0], image[1], project_meta=g.task_project_meta)
+        g.image_gallery.append(image[0], image[1], project_meta=g.job_project_meta)
 
     workbench.card.unlock()
     workbench.card.uncollapse()
 
+    start_review_button.hide()
     card.lock()
     card.collapse()
 
 
-@sly.handle_exceptions
 @sly.timeit
 @all_images_switcher.value_changed
 def show_filters(switched):
@@ -593,34 +566,32 @@ def show_filters(switched):
         filter_container.show()
 
 
-@sly.handle_exceptions
 @sly.timeit
 @refresh_button.click
-def update_task_selector():
+def update_job_selector():
     g.on_refresh = True
-    load_labeling_tasks()
-    task_selector.set(items=g.tasks_names)
-    task_selector.set_value(None)  # TODO fix case if the task not cleared
-    task_dataset_card.hide()
-    task_info_card.hide()
-
-    disable_settings(True)
+    g.image_gallery.clean_states()
+    load_labeling_jobs()
+    job_selector.set(items=g.jobs_names)
+    job_selector.set_value(None)
+    job_dataset_card.hide()
+    job_info_card.hide()
+    g.job_info = None
+    g.selected_job = None
     g.on_refresh = False
 
 
-@sly.handle_exceptions
 @sly.timeit
 @tags_editing_switcher.value_changed
 def set_tags_editing(switched):
-    workbench.image_gallery.edit_tags(switched)
+    g.image_gallery.edit_tags(switched)
 
 
-@sly.handle_exceptions
 @sly.timeit
-def finish_task():
-    update_task_selector()
+def finish_job():
+    update_job_selector()
     unlock_control_tab()
-    disable_settings(True)
+    g.api.labeling_job.set_status(g.job_info.id, "completed")
 
 
-g.finish_cb = finish_task
+g.finish_cb = finish_job

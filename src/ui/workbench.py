@@ -4,55 +4,60 @@ from supervisely.app.widgets import Button, Card, Container, Field, Progress, Te
 import src.globals as g
 from src.ui.review_gallery.widget import ReviewGallery
 
-apply_button = Button("Apply to Batch", "success")
-apply_button_field = Field(
-    content=apply_button,
-    title="",
-    description="By clicking this button you will apply selected decisions to its images for the current batch.",
+apply_button = Button("Apply to batch", "success")
+apply_button_text = Text(
+    "By clicking this button you will apply selected decisions to its images for the current batch",
+    color="#5a6772",
+)
+apply_button_container = Container(
+    widgets=[apply_button_text, apply_button], style="align-items: flex-end;"
 )
 
 finish_button = Button("Finish", "primary")
-finish_button_field = Field(
-    content=finish_button,
-    title="",
-    description="By clicking this button you will finish review process.",
+finish_button_text = Text(
+    "By clicking this button you will finish review process for curren Labeling Job and close the workbench",
+    color="#5a6772",
 )
+finish_button_container = Container(
+    widgets=[finish_button_text, finish_button], style="align-items: flex-end;"
+)
+finish_button_container.hide()
+finish_button.disable()
 
 description_text = Text(
     "Displaying pictures in the gallery depends on grouping and filtering settings, allowing you to customize your viewing experience. \n"
     "Tag editing is possible if activated before starting the process. ",
     "info",
 )
-image_gallery = ReviewGallery(
+g.image_gallery = ReviewGallery(
     columns_number=4,
     empty_message="",
 )
 review_progress = Progress()
 button_container = Container(
-    widgets=[apply_button_field, finish_button_field],
-    direction="horizontal",
+    widgets=[apply_button_container, finish_button_container],
+    style="margin-top: 20px; align-items: flex-end;  border-top: 1px solid #5a6772; padding-top: 10px;",
 )
 gallery_container = Container(
-    widgets=[description_text, review_progress, image_gallery, button_container]
+    widgets=[description_text, review_progress, g.image_gallery, button_container]
 )
 card = Card(
     title="🔬 Workbench",
     description="A comprehensive interface for reviewing a collection of images with their annotations.",
     content=gallery_container,
-    lock_message="Select the Labbeling Task and andjust Settings to start Review.",
+    lock_message="Select the Labeling Job and andjust settings to start review process",
     collapsable=True,
 )
 card.lock()
 card.collapse()
 
 
-@sly.handle_exceptions
 @sly.timeit
 @apply_button.click
 def apply_decision():
-    review_states: dict = image_gallery.get_review_states()
-    tag_values: dict = image_gallery.get_tag_values()
-    tag_change_states: dict = image_gallery.get_tag_change_states()
+    review_states: dict = g.image_gallery.get_review_states()
+    tag_values: dict = g.image_gallery.get_tag_values()
+    tag_change_states: dict = g.image_gallery.get_tag_change_states()
     for image in g.image_batches[g.current_batch_idx]:
         try:
             review_state = review_states[str(image[0].id)]
@@ -76,7 +81,7 @@ def apply_decision():
                     else:
                         sly.logger.error(f"Error in updating tag {tag_id}")
         g.api.labeling_job.set_entity_review_status(
-            g.task_info.id,
+            g.job_info.id,
             image[0].id,
             review_state,
         )
@@ -84,18 +89,24 @@ def apply_decision():
     g.progress.update(len(g.image_batches[g.current_batch_idx]))
     if g.current_batch_idx < len(g.image_batches) - 1:
         g.current_batch_idx += 1
-        image_gallery.clean_states()
-        g.populate_gallery_func(image_gallery)
+        g.image_gallery.clean_states()
+        g.populate_gallery_func(g.image_gallery)
     else:
-        image_gallery.clean_states()
+        g.image_gallery.clean_states()
+        g.image_gallery.clean_up()
         sly.app.show_dialog(
             "Review process is finished",
-            f"{'All' if g.progress.n == g.progress.total else g.progress.n} images have been reviewed",
+            f"{'All' if g.progress.n == g.progress.total else g.progress.n} images have been reviewed. Now you can set \"Complete\" status for the Labeling Job or just choose another one by clicking on the \"Change Settings\" button",
+            status="success",
         )
-        g.finish_cb()
         g.progress.close()
+        finish_button.enable()
+        finish_button_container.show()
+        apply_button_container.hide()
 
 
 @finish_button.click
 def finish_review():
     g.finish_cb()
+    finish_button.disable()
+    apply_button_container.show()
