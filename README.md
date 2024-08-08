@@ -20,21 +20,32 @@
 
 ## Overview
 
-Section for app overview. Describe what the app does, what are the benefits of using it, key features, and what is the expected output, etc.
+The `Review Image Annotations in Batches` application allows for batch review of image annotations.
+
+Through its settings, you can:
+ - Select the batch size, which determines the grid size of images for visualization
+ - Set a default value that will predetermine the decision for each image in the batch before the actual review
+ - Precisely filter by tags and classes
+ - Group images by tag or class criteria
+ - Edit tags directly during the review process 
 
 ## Preparation
 
-Section for app preparation. Describe what the user should do before running the app. For example, upload images to the team storage, create a project, etc.
+Before you can try this application in action, you need to have a Labeling Job ready for review.
+To learn more about what a Labeling Job is, how to create it, and what the review process involves, you can read [this article](https://supervisely.com/blog/labeling-jobs/) or watch video.
+
+<a data-key="sly-embeded-video-link" href="https://youtu.be/YwNHbvyZL7Q" data-video-code="YwNHbvyZL7Q">  
+    <img src="https://github.com/user-attachments/assets/e1c26f0f-1d4f-463a-8401-5460bbaad946">
+</a>
 
 ## How To Run
+1. Launch the application.
+2. Select the Labeling Job you want to review.
+3. Configure your Workbanch in `Review Settings` for optimal convenience during the process.
+4. Click the `Start Review` button to begin.
 
-Section for the app running. Describe how to run the app step by step.
-
-**Step 1:** Describe actions in step.<br><br>
-
-**Step 2:** Describe actions in step.<br><br>
-
-<!-- use pictures or gifs to make it clear
-<img src="placeholder for screenshot"/><br><br> -->
+During the review, the application arranges a grid of images, displaying their annotations: tags and object classes. <br>
+Each image has its own decision selector. By setting decisions for the images in the batch, you can apply statuses to all the images in the batch with one click `Apply to batch`.
+The next batch of the same size will be displayed, and this process will continue until all unchecked images are reviewed.
 
 After finishing using the app, don't forget to stop the app session manually in the App Sessions.
