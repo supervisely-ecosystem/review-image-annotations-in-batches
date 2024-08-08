@@ -20,7 +20,7 @@
 
 ## Overview
 
-The `Review Image Annotations in Batches` application allows for batch review of image annotations.
+The **Review Image Annotations in Batches** application allows for batch review of image annotations.
 
 Through its settings, you can:
  - Select the batch size, which determines the grid size of images for visualization
