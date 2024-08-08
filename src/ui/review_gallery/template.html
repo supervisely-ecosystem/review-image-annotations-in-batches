@@ -83,7 +83,7 @@
             <el-tag
               :style="{
                   display: 'inline-block',
-                  maxWidth: '310px',
+                  maxWidth: '280px',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -130,7 +130,7 @@
               trigger="click"
               v-model="tagItem.showPopover"
               style="min-width: auto; width: auto"
-              :style="{ maxWidth: '300px', width: 'auto', height: 'auto' }"
+              :style="{ maxWidth: '280px', width: 'auto', height: 'auto' }"
             >
               <el-input-number
                 v-if="tagItem.type === 'any_number'"
@@ -152,7 +152,6 @@
                 v-if="tagItem.type === 'oneof_string'"
                 v-model="tagItem.value"
                 placeholder="Select tag value"
-                :style="{ minWidth: '100px', maxWidth: '300px', width: 'auto' }"
                 :value="state.{{{widget.widget_id}}}.tagValues[tagItem.id]"
                 @input="(evt) => { state.{{{widget.widget_id}}}.tagValues[tagItem.id]=evt; state.{{{widget.widget_id}}}.tagChangeStates[tagItem.id]=evt}"
               >
@@ -167,7 +166,7 @@
                 slot="reference"
                 :style="{
                   display: 'inline-block',
-                  maxWidth: '310px',
+                  maxWidth: '280px',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -190,7 +189,7 @@
               v-if="tagItem.type === 'none'"
               :style="{
                   display: 'inline-block',
-                  maxWidth: '310px',
+                  maxWidth: '280px',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
@@ -212,7 +211,7 @@
               v-if="tagItem.type !== 'none' && !state.{{{widget.widget_id}}}.editTags"
               :style="{
                   display: 'inline-block',
-                  maxWidth: '310px',
+                  maxWidth: '280px',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
