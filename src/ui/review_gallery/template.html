@@ -41,23 +41,7 @@
       :active-figure="state.{{{widget.widget_id}}}.activeFigure"
     >
       <template v-slot:card-footer="{ annotation }">
-        <!-- Switch -->
-        <!-- <div style="margin-top: 6px; justify-content: left" class="fflex">
-          <el-switch
-            on-color="#13ce66"
-            off-color="#ff4949"
-            on-text=""
-            off-text=""
-            :value="state.{{{widget.widget_id}}}.reviewStates[annotation.image_id]"
-            @input="state.{{{widget.widget_id}}}.reviewStates[annotation.image_id]=$event"
-          >
-          </el-switch>
-          <span class="ml5"
-            >{{ state.{{{widget.widget_id}}}.reviewStates[annotation.image_id]
-            >?'Accept':'Reject'}}</span
-          >
-        </div> -->
-        <!-- Tags -->
+        <!-- ------------------------------------ Decision Selector ------------------------------------ -->
         <div
           v-if="annotation.image_name && annotation.image_name.length > 0"
           style="text-align: left; margin-top: 6px"
@@ -65,7 +49,9 @@
           <span>{{annotation.image_name}}</span>
           <hr style="opacity: 0.5" />
         </div>
-        <div style="margin-top: 6px; justify-content: center">
+        <div
+          style="margin-top: 6px; padding-bottom: 2px; justify-content: center"
+        >
           <el-radio-group
             size="small"
             :value="state.{{{widget.widget_id}}}.reviewStates[annotation.image_id]"
@@ -82,39 +68,57 @@
             >
           </el-radio-group>
         </div>
+        <!-- ----------------------------------------- Classes ----------------------------------------- -->
+        <div
+          v-if="annotation.classes.length > 0"
+          style="text-align: left; margin-top: 5px; white-space: normal"
+        >
+          Classes:
+          <span
+            v-for="(classItem, index) in annotation.classes"
+            :key="index"
+            style="display: block; margin-left: 56px"
+            :style="index === 0 ? 'display: inline; margin-left: 0; white-space: nowrap' : 'display: block; margin-left: 56px'"
+          >
+            <el-tag
+              :style="{
+                  display: 'inline-block',
+                  maxWidth: '310px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  verticalAlign: 'middle',
+                  fontSize: '12px',
+                  backgroundColor: 'transparent',
+                  border: `2px solid ${classItem.color}`,
+                  color: 'black',
+                  marginBottom: '2px',
+                }"
+              effect="plain"
+              :title="classItem.title"
+            >
+              {{ classItem.title }}
+            </el-tag>
+          </span>
+        </div>
+        <div
+          v-else
+          style="
+            text-align: left;
+            margin-top: 5px;
+            white-space: normal;
+            height: 26px;
+            align-content: center;
+          "
+        >
+          <span style="color: #5a6772">No classes</span>
+        </div>
+        <!-- ------------------------------------------ Tags ------------------------------------------- -->
         <div
           v-if="annotation.tags.length > 0"
           style="text-align: left; margin-top: 5px; white-space: normal"
         >
           Tags:
-          <!-- <span
-            v-for="(tagItem, index) in annotation.tags"
-            :key="index"
-            style="display: block; margin-left: 37px"
-            :style="index === 0 ? 'display: inline; margin-left: 0; white-space: nowrap' : 'display: block; margin-left: 37px'"
-          >
-            <i
-              class="zmdi zmdi-circle"
-              style="margin-right: 2px; vertical-align: middle"
-              :style="{color: tagItem.color}"
-            ></i>
-            <b
-              style="
-                font-size: 16;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                max-width: 310px;
-                display: inline-block;
-                vertical-align: middle;
-              "
-              :title="tagItem.value ? `${tagItem.title}: ${tagItem.value}` : tagItem.title"
-            >
-              {{ tagItem.title }}<span v-if="tagItem.value"
-                >: {{ tagItem.value }}</span
-              >
-            </b>
-          </span> -->
           <span
             v-for="(tagItem, index) in annotation.tags"
             :key="index"
@@ -233,44 +237,6 @@
           style="text-align: left; margin-top: 5px; white-space: normal"
         >
           <span style="color: #5a6772">No tags</span>
-        </div>
-        <!-- Classes -->
-        <div
-          v-if="annotation.classes.length > 0"
-          style="text-align: left; margin-top: 5px; white-space: normal"
-        >
-          Classes:
-          <span
-            v-for="(classItem, index) in annotation.classes"
-            :key="index"
-            style="display: block; margin-left: 56px"
-            :style="index === 0 ? 'display: inline; margin-left: 0; white-space: nowrap' : 'display: block; margin-left: 56px'"
-          >
-            <i
-              class="zmdi zmdi-circle"
-              style="margin-right: 2px; vertical-align: middle"
-              :style="{color: classItem.color}"
-            ></i>
-            <b
-              style="
-                font-size: 16;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                max-width: 310px;
-                display: inline-block;
-                vertical-align: middle;
-              "
-              :title="classItem.title"
-              >{{ classItem.title }}</b
-            >
-          </span>
-        </div>
-        <div
-          v-else
-          style="text-align: left; margin-top: 5px; white-space: normal"
-        >
-          <span style="color: #5a6772">No classes</span>
         </div>
       </template>
     </sly-grid-gallery>

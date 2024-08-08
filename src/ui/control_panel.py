@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Dict, List
+from typing import List
 
 import supervisely as sly
 from supervisely.app.widgets import (
@@ -26,8 +26,9 @@ def load_labeling_tasks():
     filtered_projects = []
     workspace_project_ids = defaultdict(list)
     g.labeling_tasks_list = g.api.labeling_job.get_list(
-        team_id=sly.env.team_id(), reviewer_id=sly.env.user_id()
+        team_id=sly.env.team_id(), reviewer_id=sly.env.user_id(), is_part_of_queue=False
     )
+    # -------------------------- Filter Tasks With Projects Of "images" Type ------------------------- #
     for task in g.labeling_tasks_list:
         workspace_project_ids[task.workspace_id].append(task.project_id)
     for workspace_id, project_ids in workspace_project_ids.items():
@@ -43,14 +44,17 @@ def load_labeling_tasks():
         for task_info in g.labeling_tasks_list
         if task_info.project_id in filtered_projects
     ]
+    # ---------------------------------------- Update Globals ---------------------------------------- #
     g.labeling_tasks_list = filtered_tasks
     g.tasks_names = [
         Select.Item(labeling_task.id, labeling_task.name) for labeling_task in g.labeling_tasks_list
     ]
+    sly.logger.debug(f"Loaded {len(g.labeling_tasks_list)} Labeling Tasks.")
 
 
 load_labeling_tasks()
 
+# ------------------------------------ GUI Labeling Task Card ------------------------------------ #
 dataset_thumbnail = DatasetThumbnail()
 task_dataset_card = Card(content=dataset_thumbnail, title="Related Dataset")
 task_dataset_card.hide()
@@ -66,6 +70,7 @@ no_task_message = Text(
 )
 no_task_message.hide()
 
+# ------------------------------------- Update Labeling Task ------------------------------------- #
 if g.selected_task:
     # If the app was loaded from a context menu.
     sly.logger.debug("App was loaded from a context menu.")
@@ -95,6 +100,7 @@ else:
     task_selector = Select(g.tasks_names, placeholder="Select Labeling Task")
     task_selector.set_value(None)
 
+# ---------------------------------- GUI Labeling Task Selector ---------------------------------- #
 refresh_button = Button("", icon="zmdi zmdi-refresh", button_size="small", plain=True)
 task_selector_container = Container(
     widgets=[task_selector, refresh_button],
@@ -104,6 +110,7 @@ task_selector_container = Container(
     fractions=[["0 1 auto"], ["0 1 auto"]],
 )
 
+# -------------------------------------- GUI Task Info Card -------------------------------------- #
 # TODO add more info to the card
 task_info_widgets = [
     Text("ID:"),
@@ -116,48 +123,50 @@ task_info_widgets = [
     Text("Tags to label: "),
     Text("Description: "),
 ]
-task_info_container = Container(widgets=task_info_widgets)
-task_info_card = Card("Task Info", content=task_info_container)
+
+task_info_card = Card("Task info", content=Container(widgets=task_info_widgets))
 task_info_card.hide()
 
-task_info_container = Container(
-    widgets=[
-        task_dataset_card,
-        task_info_card,
-    ],
-    gap=0,
-)
+task_info_container = Container(widgets=[task_dataset_card, task_info_card], gap=0)
 
-data_container = Container(
-    widgets=[
-        task_selector_container,
-        task_info_container,
-    ],
-    # style="flex: 1 2 0%;/* display: flex; */",
-    # fractions=[1, 2],
-    # direction="horizontal",
-    # gap=10,
-)
+data_container = Container(widgets=[task_selector_container, task_info_container])
 data_card = Card("Labeling Task", content=data_container)
 
 # -------------------------------------- Batch Size Settings ------------------------------------- #
 batch_size_input = InputNumber(4, min=4, max=100)
-batch_size_card = Card("Batch Size", content=batch_size_input)
+batch_size_text = Text(
+    text="Set the number of images to be displayed in the batch", color="#5a6772"
+)
+batch_size_card = Card("Batch size", content=Container(widgets=[batch_size_text, batch_size_input]))
+
 # --------------------------------------- Group By Settings -------------------------------------- #
 group_by_radio_group_items = [
     RadioGroup.Item(value="tag", label="Tags"),
     RadioGroup.Item(value="class", label="Classes"),
 ]
 group_by_radio_group = RadioGroup(items=group_by_radio_group_items, size="large")
-group_by_card = Card(content=group_by_radio_group, title="Group By")
+group_by_text = Text(
+    text="Images will be grouped by a specified criterion. If an image has multiple tags or classes, it will be placed in the group corresponding to the tag or class that was processed first in the grouping logic",
+    color="#5a6772",
+)
+group_by_card = Card(
+    content=Container(
+        widgets=[
+            group_by_text,
+            group_by_radio_group,
+        ]
+    ),
+    title="Group by",
+)
+
 # ----------------------------------- Image Filtering Settings ----------------------------------- #
 all_images_switcher = Switch(False, on_text="Yes", off_text="No")
 all_images_text_l1 = Text(
-    text="Filtering works simultaneously by tags and classes.",
+    text="Filtering works simultaneously by tags and classes",
     color="#5a6772",
 )
 all_images_text_l2 = Text(
-    text="TIP: If no checkbox is selected in a category, all images lacking these elements will be filtered out.",
+    text="TIP: If no checkbox is selected in a category, all images lacking these elements will be filtered out",
     color="#5a6772",
 )
 task_tags_selector = TagsListSelector(multiple=True)
@@ -172,6 +181,7 @@ filter_card = Card(
         widgets=[all_images_text_l1, all_images_text_l2, all_images_switcher, filter_container]
     ),
 )
+
 # ------------------------------------- Tags Editing Settings ------------------------------------ #
 tags_editing_switcher = Switch(False, on_text="Yes", off_text="No")
 tags_editing_text = Text(
@@ -187,6 +197,7 @@ tags_editing_card = Card(
         ]
     ),
 )
+
 # -------------------------------------- Acceptance Settings ------------------------------------- #
 acceptance_radio_group_items = [
     RadioGroup.Item(value="accepted", label="Accept"),
@@ -194,11 +205,20 @@ acceptance_radio_group_items = [
     RadioGroup.Item(value="rejected", label="Reject"),
 ]
 acceptance_radio_group = RadioGroup(items=acceptance_radio_group_items, size="large")
-acceptance_radio_group_card = Card(
-    content=acceptance_radio_group,
-    title="Default decision",
-    description="Set the default decision, which will be automatically selected for each image in the batch before the review starts",
+acceptance_text = Text(
+    text="Set the default decision, which will be automatically selected for each image in the batch before the review starts",
+    color="#5a6772",
 )
+acceptance_radio_group_card = Card(
+    content=Container(
+        widgets=[
+            acceptance_text,
+            acceptance_radio_group,
+        ]
+    ),
+    title="Default decision",
+)
+
 # --------------------------------------- Settings Elements -------------------------------------- #
 settings_1st_line_container = Container(
     widgets=[batch_size_card, group_by_card],
@@ -221,33 +241,7 @@ settings_container = Container(
 )
 settings_card = Card("Review Settings", content=settings_container)
 
-
-def disable_settings(disable):
-    if disable:
-        batch_size_input.disable()
-        group_by_radio_group.disable()
-        task_tags_field.disable()
-        task_classes_field.disable()
-        all_images_switcher.disable()
-        tags_editing_switcher.disable()
-        task_tags_selector.disable()
-        task_classes_selector.disable()
-        acceptance_radio_group.disable()
-    else:
-        batch_size_input.enable()
-        group_by_radio_group.enable()
-        task_tags_field.enable()
-        task_classes_field.enable()
-        all_images_switcher.enable()
-        tags_editing_switcher.enable()
-        task_tags_selector.enable()
-        task_classes_selector.enable()
-        acceptance_radio_group.enable()
-
-
-disable_settings(True)
-# ----------------------------------------------- - ---------------------------------------------- #
-
+# ---------------------------------------- GUI Control Panel ------------------------------------- #
 input_container = Container(
     widgets=[
         data_card,
@@ -275,6 +269,30 @@ card = Card(
 )
 
 
+# ------------------------------------------- Functions ------------------------------------------ #
+def disable_settings(disable):
+    if disable:
+        batch_size_input.disable()
+        group_by_radio_group.disable()
+        task_tags_field.disable()
+        task_classes_field.disable()
+        all_images_switcher.disable()
+        tags_editing_switcher.disable()
+        task_tags_selector.disable()
+        task_classes_selector.disable()
+        acceptance_radio_group.disable()
+    else:
+        batch_size_input.enable()
+        group_by_radio_group.enable()
+        task_tags_field.enable()
+        task_classes_field.enable()
+        all_images_switcher.enable()
+        tags_editing_switcher.enable()
+        task_tags_selector.enable()
+        task_classes_selector.enable()
+        acceptance_radio_group.enable()
+
+
 def create_image_batches(
     img_infos: List[sly.ImageInfo],
     anns: List[sly.Annotation],
@@ -291,7 +309,11 @@ def populate_gallery(gallery_widget: workbench.ReviewGallery):
         gallery_widget.append(image[0], image[1], project_meta=g.task_project_meta)
 
 
-g.populate_gallery_func = populate_gallery
+def show_dialog_no_images():
+    text = "No images found with the specified filters."
+    sly.app.show_dialog("Warning", text, "warning")
+    sly.logger.warn(text)
+    unlock_control_tab()
 
 
 def get_settings():
@@ -383,6 +405,11 @@ def group_images_by(
     return grouped_images, grouped_anns
 
 
+disable_settings(True)
+g.populate_gallery_func = populate_gallery
+
+
+# ---------------------------------------- Event Handlers --------------------------------------- #
 @task_selector.value_changed
 def show_task_info(task_id):
     """Handles the Labeling Task selector value change event.
@@ -444,13 +471,6 @@ def unlock_control_tab():
     workbench.image_gallery.clean_up()
     workbench.card.lock()
     workbench.card.collapse()
-
-
-def show_dialog_no_images():
-    text = "No images found with the specified filters."
-    sly.app.show_dialog("Warning", text, "warning")
-    sly.logger.warn(text)
-    unlock_control_tab()
 
 
 @start_review_button.click
