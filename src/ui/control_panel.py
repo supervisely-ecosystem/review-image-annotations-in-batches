@@ -72,8 +72,8 @@ job_dataset_card = Card(content=dataset_thumbnail, title="Related Dataset")
 job_dataset_card.hide()
 
 start_review_button = Button("Start Review")
-change_settings_button = Button("Change Settings", icon="zmdi zmdi-lock-open")
-change_settings_button.hide()
+g.change_settings_button = Button("Change Settings", icon="zmdi zmdi-lock-open")
+g.change_settings_button.hide()
 
 no_job_message = Text(
     "Please, select a Labeling Job before clicking the button.",
@@ -255,13 +255,13 @@ card = Card(
     content=Container(
         widgets=[
             input_container,
-            no_job_message,
-            Container(widgets=[start_review_button]),
+            Container(widgets=[no_job_message], style="align-items: flex-end;"),
+            Container(widgets=[start_review_button], style="align-items: flex-end;"),
         ],
-        style="align-items: flex-end;",
     ),
-    content_top_right=change_settings_button,
+    content_top_right=g.change_settings_button,
     collapsable=True,
+    overflow="unset",
 )
 
 
@@ -471,19 +471,20 @@ def show_job_info(job_id):
 
 
 @sly.timeit
-@change_settings_button.click
+@g.change_settings_button.click
 def unlock_control_tab():
     card.uncollapse()
     card.unlock()
 
     job_selector.enable()
     start_review_button.show()
-    change_settings_button.hide()
+    g.change_settings_button.hide()
     g.image_gallery.clean_states()
     g.image_gallery.clean_up()
     workbench.card.lock()
     workbench.card.collapse()
-    g.progress.close()
+    if g.progress is not None:
+        g.progress.close()
     workbench.finish_button_container.hide()
     workbench.apply_button_container.show()
 
@@ -496,6 +497,7 @@ def start_review():
     calling the API to get images from dataset with annotations,
     building the Review Gallery with predefined settings.
     """
+    g.change_settings_button.disable()
     g.current_batch_idx = 0
     if g.selected_job is None:
         no_job_message.show()
@@ -503,7 +505,7 @@ def start_review():
 
     job_selector.disable()
 
-    change_settings_button.show()
+    g.change_settings_button.show()
 
     sly.logger.debug(f"Calling API with Labeling Job ID {g.selected_job} to get dataset ID.")
     g.job_info = g.api.labeling_job.get_info_by_id(g.selected_job)
@@ -568,6 +570,7 @@ def start_review():
     start_review_button.hide()
     card.lock()
     card.collapse()
+    g.change_settings_button.enable()
 
 
 @sly.timeit

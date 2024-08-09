@@ -14,12 +14,17 @@ apply_button_container = Container(
 )
 
 finish_button = Button("Complete", "success")
-finish_button_text = Text(
-    "By clicking this button you will finish review process for curren Labeling Job and close the workbench",
+finish_button_text_l1 = Text(
+    'By clicking this button you will set review status "Complete" for the curren Labeling Job and close the workbench',
+    color="#5a6772",
+)
+finish_button_text_l2 = Text(
+    'If you want to review more images or just end without setting "Complete" status, click on the "Change Settings" button',
     color="#5a6772",
 )
 finish_button_container = Container(
-    widgets=[finish_button_text, finish_button], style="align-items: flex-end;"
+    widgets=[finish_button_text_l1, finish_button_text_l2, finish_button],
+    style="align-items: flex-end;",
 )
 finish_button_container.hide()
 finish_button.disable()
@@ -47,6 +52,7 @@ card = Card(
     content=gallery_container,
     lock_message="Select the Labeling Job and andjust settings to start review process",
     collapsable=True,
+    overflow="unset",
 )
 card.lock()
 card.collapse()
@@ -55,6 +61,7 @@ card.collapse()
 @sly.timeit
 @apply_button.click
 def apply_decision():
+    g.change_settings_button.disable()
     review_states: dict = g.image_gallery.get_review_states()
     tag_values: dict = g.image_gallery.get_tag_values()
     tag_change_states: dict = g.image_gallery.get_tag_change_states()
@@ -99,10 +106,12 @@ def apply_decision():
             f"{'All' if g.progress.n == g.progress.total else g.progress.n} images have been reviewed. Now you can set \"Complete\" status for the Labeling Job or just choose another one by clicking on the \"Change Settings\" button",
             status="success",
         )
-        g.progress.close()
+        if g.progress is not None:
+            g.progress.close()
         finish_button.enable()
         finish_button_container.show()
         apply_button_container.hide()
+    g.change_settings_button.enable()
 
 
 @finish_button.click

@@ -44,4 +44,5 @@ jobs_names = None
 accepted_statuses_for_review = ["done", "none"]  # ? remove none
 exclude_job_statuses = ["pending", "completed"]
 image_gallery: ReviewGallery = None
+change_settings_button: sly.app.widgets.Button = None
 # ----------------------------------------------- - ---------------------------------------------- #
