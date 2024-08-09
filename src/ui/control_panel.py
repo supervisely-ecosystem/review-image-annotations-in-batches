@@ -102,19 +102,33 @@ all_images_text_l1 = Text(
     color="#5a6772",
 )
 all_images_text_l2 = Text(
-    text="TIP: If no checkbox is selected in a category, all images lacking these elements will be filtered out",
+    text=" - If no elements is selected in a category, only images lacking these elements will be displayed",
+    color="#5a6772",
+)
+all_images_text_l3 = Text(
+    text=" - If all elements in a category are selected, images containing at least one of these elements will be displayed",
     color="#5a6772",
 )
 job_tags_selector = TagsListSelector(multiple=True)
 job_tags_field = Field(title="by Tags", content=job_tags_selector)
 job_classes_selector = ClassesListSelector(multiple=True)
 job_classes_field = Field(title="by Classes", content=job_classes_selector)
-filter_container = Container(widgets=[job_tags_field, job_classes_field], direction="horizontal")
+tips_container = Container(
+    widgets=[all_images_text_l2, all_images_text_l3], gap=4, style="margin-left: 20px;"
+)
+filter_fields_container = Container(
+    widgets=[job_tags_field, job_classes_field], direction="horizontal"
+)
+filter_container = Container(widgets=[tips_container, filter_fields_container])
 filter_container.hide()
 filter_card = Card(
     "Filter Images",
     content=Container(
-        widgets=[all_images_text_l1, all_images_text_l2, all_images_switcher, filter_container]
+        widgets=[
+            all_images_text_l1,
+            all_images_switcher,
+            filter_container,
+        ]
     ),
 )
 
@@ -184,7 +198,7 @@ tags_editing_card = Card(
 # -------------------------------------- Acceptance Settings ------------------------------------- #
 acceptance_radio_group_items = [
     RadioGroup.Item(value="accepted", label="Accept"),
-    RadioGroup.Item(value="ignore", label="Ignore"),
+    RadioGroup.Item(value="ignore", label="Skip"),
     RadioGroup.Item(value="rejected", label="Reject"),
 ]
 acceptance_radio_group = RadioGroup(items=acceptance_radio_group_items, size="large")
@@ -327,11 +341,13 @@ def get_settings():
 @sly.handle_exceptions
 @sly.timeit
 def filter_images_by_tags(images: List[sly.ImageInfo], tags: List[str]):
-    if tags == []:
-        return images
+
     filtered_images = []
     tag_ids = [tag.sly_id for tag in tags]
     for img in images:
+        if len(img.tags) == 0 and len(tags) == 0:
+            filtered_images.append(img)
+            continue
         img_tag_ids = [tag["tagId"] for tag in img.tags]
         if any(tag_id in tag_ids for tag_id in img_tag_ids):
             filtered_images.append(img)
@@ -350,6 +366,10 @@ def filter_image_anns(
     filtered_anns = []
     img_idx = []
     for idx, ann in enumerate(annotations):
+        if len(ann.labels) == 0 and len(settings.classes) == 0:
+            filtered_anns.append(ann)
+            img_idx.append(idx)
+            continue
         for label in ann.labels:
             if label.obj_class in settings.classes:
                 filtered_anns.append(ann)
@@ -461,6 +481,7 @@ def unlock_control_tab():
     job_selector.enable()
     start_review_button.show()
     change_settings_button.hide()
+    g.image_gallery.clean_states()
     g.image_gallery.clean_up()
     workbench.card.lock()
     workbench.card.collapse()
@@ -565,6 +586,7 @@ def show_filters(switched):
 def update_job_selector():
     g.on_refresh = True
     g.image_gallery.clean_states()
+    g.image_gallery.clean_up()
     load_labeling_jobs()
     job_selector.set(items=g.jobs_names)
     job_selector.set_value(None)

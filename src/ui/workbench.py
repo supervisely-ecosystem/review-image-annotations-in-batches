@@ -43,7 +43,7 @@ gallery_container = Container(
 )
 card = Card(
     title="🔬 Workbench",
-    description="A comprehensive interface for reviewing a collection of images with their annotations.",
+    description="A comprehensive interface for reviewing a collection of images with their annotations",
     content=gallery_container,
     lock_message="Select the Labeling Job and andjust settings to start review process",
     collapsable=True,
