@@ -13,7 +13,7 @@ apply_button_container = Container(
     widgets=[apply_button_text, apply_button], style="align-items: flex-end;"
 )
 
-finish_button = Button("Finish", "primary")
+finish_button = Button("Complete", "success")
 finish_button_text = Text(
     "By clicking this button you will finish review process for curren Labeling Job and close the workbench",
     color="#5a6772",

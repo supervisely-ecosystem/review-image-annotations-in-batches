@@ -133,9 +133,7 @@ filter_card = Card(
 )
 
 # ---------------------------------- GUI Labeling Job Selector ---------------------------------- #
-refresh_button = Button(
-    "", icon="zmdi zmdi-refresh", button_size="small", plain=True, show_loading=False
-)
+refresh_button = Button("", icon="zmdi zmdi-refresh", button_size="small", plain=True, icon_gap=0)
 job_selector_container = Container(
     widgets=[job_selector, refresh_button],
     gap=4,
@@ -584,6 +582,7 @@ def show_filters(switched):
 @sly.timeit
 @refresh_button.click
 def update_job_selector():
+    refresh_button.icon = ""
     g.on_refresh = True
     g.image_gallery.clean_states()
     g.image_gallery.clean_up()
@@ -595,6 +594,7 @@ def update_job_selector():
     g.job_info = None
     g.selected_job = None
     g.on_refresh = False
+    refresh_button.icon = "zmdi zmdi-refresh"
 
 
 @sly.timeit
