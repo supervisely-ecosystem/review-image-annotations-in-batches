@@ -1,2 +1,0 @@
-# supervisely==6.73.138
-git+https://github.com/supervisely/supervisely.git@master

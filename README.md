@@ -1,6 +1,6 @@
 <div align="center" markdown>
 
-<img src="poster placeholder"/>
+<img src="https://github.com/user-attachments/assets/f12e7dbd-c2d6-4878-95cb-ab47b022e763"/>
 
 # Review Image Annotations in Batches
 
@@ -41,12 +41,12 @@ To learn more about what a Labeling Job is, how to create it, and what the revie
 ## How To Run
 1. Launch the application.
 2. Select the Labeling Job you want to review.
-3. Configure your Workbench in `Review Settings` for optimal convenience during the process.
-4. Click the `Start Review` button to begin.
+3. Configure your Workbench in **Review Settings** for optimal convenience during the process.
+4. Click the **Start Review** button to begin.
 
 During the review, the application arranges a grid of images, displaying their annotations: tags and object classes. <br>
-Each image has its own decision selector. By setting decisions for the images in the batch, you can apply statuses to all the images in the batch with one click `Apply to batch`.
+Each image has its own decision selector. By setting decisions for the images in the batch, you can apply statuses to all the images in the batch with one click **Apply to batch**.
 The next batch of the same size will be displayed, and this process will continue until all unchecked images are reviewed.
-In the end of review process you will be able to set Completed status to the current Labeling Job or just go next.
+At the end of the review process, you can either set the current Labeling Job to 'Completed' status or simply proceed to the next one.
 
-After finishing using the app, don't forget to stop the app session manually in the App Sessions.
+After using the app, remember to manually stop the app session in App Sessions.
