@@ -1,6 +1,6 @@
 <div align="center" markdown>
 
-<img src="https://github.com/user-attachments/assets/f12e7dbd-c2d6-4878-95cb-ab47b022e763"/>
+<img src="https://github.com/user-attachments/assets/99da5427-fe7c-4d5d-a33e-94592b8933b3"/>
 
 # Review Image Annotations in Batches
 
