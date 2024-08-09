@@ -7,8 +7,8 @@
   "categories": ["images", "collaboration"],
   "headless": false,
   "entrypoint": "python -m uvicorn src.main:app --host 0.0.0.0 --port 8000",
-  "port": 8000,
   "icon": "https://github.com/user-attachments/assets/b2729d88-dcd0-415e-8568-5115fe742d1a",
   "icon_cover": true,
+  "instance_version": "6.11.6",
   "poster": "https://github.com/user-attachments/assets/99da5427-fe7c-4d5d-a33e-94592b8933b3"
 }
