@@ -2,6 +2,7 @@ import supervisely as sly
 from supervisely.app.widgets import Button, Card, Container, Field, Progress, Text
 
 import src.globals as g
+import src.utils as u
 from src.ui.review_gallery.widget import ReviewGallery
 
 apply_button = Button("Apply to batch", "success")
@@ -58,8 +59,11 @@ card.lock()
 card.collapse()
 
 
-@sly.timeit
+# ---------------------------------------- Event Handlers ---------------------------------------- #
+
+
 @apply_button.click
+@u.handle_exception_dialog
 def apply_decision():
     g.change_settings_button.disable()
     review_states: dict = g.image_gallery.get_review_states()
@@ -116,6 +120,8 @@ def apply_decision():
 
 @finish_button.click
 def finish_review():
+    g.on_complete = True
     g.finish_cb()
     finish_button.disable()
     apply_button_container.show()
+    g.on_complete = False

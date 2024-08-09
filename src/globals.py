@@ -34,6 +34,7 @@ image_batches = []
 current_batch_idx = 0
 review_images_cnt = 0
 on_refresh = False
+on_complete = False
 populate_gallery_func = None
 job_project_meta = None
 settings: Settings = None

@@ -8,7 +8,6 @@ from supervisely.app.widgets import (
     ClassesListSelector,
     Container,
     DatasetThumbnail,
-    Empty,
     Field,
     InputNumber,
     RadioGroup,
@@ -20,10 +19,10 @@ from supervisely.app.widgets import (
 
 import src.globals as g
 import src.ui.workbench as workbench
+import src.utils as u
 
 
-@sly.handle_exceptions
-@sly.timeit
+@u.handle_exception_dialog
 def load_labeling_jobs():
     g.jobs_names = None
     g.labeling_jobs_list = None
@@ -266,8 +265,9 @@ card = Card(
 
 
 # ------------------------------------------- Functions ------------------------------------------ #
-@sly.handle_exceptions
-@sly.timeit
+
+
+@u.handle_exception_dialog
 def disable_settings(disable):
     if disable:
         batch_size_input.disable()
@@ -291,8 +291,7 @@ def disable_settings(disable):
         acceptance_radio_group.enable()
 
 
-@sly.handle_exceptions
-@sly.timeit
+@u.handle_exception_dialog
 def create_image_batches(
     img_infos: List[sly.ImageInfo],
     anns: List[sly.Annotation],
@@ -303,25 +302,22 @@ def create_image_batches(
     return batches
 
 
-@sly.handle_exceptions
-@sly.timeit
+@u.handle_exception_dialog
 def populate_gallery(gallery_widget: workbench.ReviewGallery):
     gallery_widget.clean_up()
     for image in g.image_batches[g.current_batch_idx]:
         gallery_widget.append(image[0], image[1], project_meta=g.job_project_meta)
 
 
-@sly.handle_exceptions
-@sly.timeit
+@u.handle_exception_dialog
 def show_dialog_no_images():
-    text = "No images found with the specified filters."
+    text = "No images were found for review"
     sly.app.show_dialog("Warning", text, "warning")
     sly.logger.warn(text)
     unlock_control_tab()
 
 
-@sly.handle_exceptions
-@sly.timeit
+@u.handle_exception_dialog
 def get_settings():
     settings = g.Settings(
         batch_size=batch_size_input.value,
@@ -336,8 +332,7 @@ def get_settings():
     return settings
 
 
-@sly.handle_exceptions
-@sly.timeit
+@u.handle_exception_dialog
 def filter_images_by_tags(images: List[sly.ImageInfo], tags: List[str]):
 
     filtered_images = []
@@ -352,8 +347,7 @@ def filter_images_by_tags(images: List[sly.ImageInfo], tags: List[str]):
     return filtered_images
 
 
-@sly.handle_exceptions
-@sly.timeit
+@u.handle_exception_dialog
 def filter_image_anns(
     img_infos: List[sly.ImageInfo],
     annotations: List[sly.Annotation],
@@ -377,8 +371,7 @@ def filter_image_anns(
     return filtered_imgs, filtered_anns
 
 
-@sly.handle_exceptions
-@sly.timeit
+@u.handle_exception_dialog
 def group_images_by(
     images: List[sly.ImageInfo],
     annotations: List[sly.Annotation],
@@ -423,8 +416,8 @@ g.populate_gallery_func = populate_gallery
 # ---------------------------------------- Event Handlers --------------------------------------- #
 
 
-@sly.timeit
 @job_selector.value_changed
+@u.handle_exception_dialog
 def show_job_info(job_id):
     """Handles the Labeling Job selector value change event.
     Showing the dataset thumbnail and job info when the Labeling Job is selected.
@@ -470,8 +463,8 @@ def show_job_info(job_id):
     disable_settings(False)
 
 
-@sly.timeit
 @g.change_settings_button.click
+@u.handle_exception_dialog
 def unlock_control_tab():
     card.uncollapse()
     card.unlock()
@@ -489,8 +482,8 @@ def unlock_control_tab():
     workbench.apply_button_container.show()
 
 
-@sly.timeit
 @start_review_button.click
+@u.handle_exception_dialog
 def start_review():
     """Handles the load button click event.
     Reading values from the Select Labeling Job widget,
@@ -508,7 +501,6 @@ def start_review():
     g.change_settings_button.show()
 
     sly.logger.debug(f"Calling API with Labeling Job ID {g.selected_job} to get dataset ID.")
-    g.job_info = g.api.labeling_job.get_info_by_id(g.selected_job)
     g.job_project_meta = g.api.labeling_job.get_project_meta(g.selected_job)
     selected_dataset = g.job_info.dataset_id
     selected_project = g.job_info.project_id
@@ -573,8 +565,8 @@ def start_review():
     g.change_settings_button.enable()
 
 
-@sly.timeit
 @all_images_switcher.value_changed
+@u.handle_exception_dialog
 def show_filters(switched):
     if not switched:
         filter_container.hide()
@@ -582,8 +574,8 @@ def show_filters(switched):
         filter_container.show()
 
 
-@sly.timeit
 @refresh_button.click
+@u.handle_exception_dialog
 def update_job_selector():
     refresh_button.icon = ""
     g.on_refresh = True
@@ -594,19 +586,20 @@ def update_job_selector():
     job_selector.set_value(None)
     job_dataset_card.hide()
     job_info_card.hide()
-    g.job_info = None
+    if not g.on_complete:
+        g.job_info = None
     g.selected_job = None
     g.on_refresh = False
     refresh_button.icon = "zmdi zmdi-refresh"
 
 
-@sly.timeit
 @tags_editing_switcher.value_changed
+@u.handle_exception_dialog
 def set_tags_editing(switched):
     g.image_gallery.edit_tags(switched)
 
 
-@sly.timeit
+@u.handle_exception_dialog
 def finish_job():
     update_job_selector()
     unlock_control_tab()
