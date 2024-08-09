@@ -501,6 +501,7 @@ def start_review():
     g.change_settings_button.show()
 
     sly.logger.debug(f"Calling API with Labeling Job ID {g.selected_job} to get dataset ID.")
+    g.job_info = g.api.labeling_job.get_info_by_id(g.selected_job)
     g.job_project_meta = g.api.labeling_job.get_project_meta(g.selected_job)
     selected_dataset = g.job_info.dataset_id
     selected_project = g.job_info.project_id
