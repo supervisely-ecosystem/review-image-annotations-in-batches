@@ -30,7 +30,10 @@ def load_labeling_jobs():
     filtered_projects = []
     workspace_project_ids = defaultdict(list)
     g.labeling_jobs_list = g.api.labeling_job.get_list(
-        team_id=sly.env.team_id(), reviewer_id=sly.env.user_id(), is_part_of_queue=False
+        team_id=sly.env.team_id(),
+        reviewer_id=sly.env.user_id(),
+        is_part_of_queue=False,
+        exclude_statuses=g.exclude_job_statuses,
     )
     # -------------------------- Filter Jobs With Projects Of "images" Type ------------------------- #
     for job in g.labeling_jobs_list:
@@ -352,10 +355,6 @@ def filter_image_anns(
                 filtered_anns.append(ann)
                 img_idx.append(idx)
                 break
-            # if any(tag in settings.tags for tag in label.tags):
-            #     filtered_anns.append(ann)
-            #     img_idx.append(idx)
-            #     break
     filtered_imgs = [img_infos[idx] for idx in img_idx]
     return filtered_imgs, filtered_anns
 
@@ -410,11 +409,11 @@ g.populate_gallery_func = populate_gallery
 @job_selector.value_changed
 def show_job_info(job_id):
     """Handles the Labeling Job selector value change event.
-    Showing the dataset thumbnail when the Labeling Job is selected.
+    Showing the dataset thumbnail and job info when the Labeling Job is selected.
     """
     disable_settings(True)
     if job_id is None or g.on_refresh:
-        # If the Labeling Job is not chosen, hiding the dataset thumbnail.
+        # If the Labeling Job is not chosen, hiding the dataset thumbnail and Job info.
         job_dataset_card.hide()
         job_info_card.hide()
         sly.logger.debug("Labeling Job selector set to None")
@@ -422,10 +421,7 @@ def show_job_info(job_id):
 
     no_job_message.hide()
 
-    # Changing the values of the global variables to access them from other modules.
     g.selected_job = job_id
-
-    # Showing the dataset thumbnail when the Labeling Job is selected.
     g.job_info = g.api.labeling_job.get_info_by_id(job_id)
     selected_dataset = g.job_info.dataset_id
     selected_project = g.job_info.project_id
@@ -479,17 +475,15 @@ def start_review():
     """Handles the load button click event.
     Reading values from the Select Labeling Job widget,
     calling the API to get images from dataset with annotations,
-    building the table with settings.
+    building the Review Gallery with predefined settings.
     """
     g.current_batch_idx = 0
     if g.selected_job is None:
         no_job_message.show()
         return
 
-    # Disabling the Labeling Job selector and the load button.
     job_selector.disable()
 
-    # Showing the button for unlocking the dataset selector and showing start button.
     change_settings_button.show()
 
     sly.logger.debug(f"Calling API with Labeling Job ID {g.selected_job} to get dataset ID.")

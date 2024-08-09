@@ -13,9 +13,6 @@ if sly.is_development():
 
 api = sly.Api.from_env()
 
-SLY_APP_DATA_DIR = sly.app.get_data_dir()
-
-
 selected_job = os.environ.get("modal.state.slyJobId", None)
 
 
@@ -44,6 +41,7 @@ progress = None
 finish_cb = None
 labeling_jobs_list = None
 jobs_names = None
-accepted_statuses_for_review = ["done", "none"]  # TODO remove none
+accepted_statuses_for_review = ["done", "none"]  # ? remove none
+exclude_job_statuses = ["pending", "completed"]
 image_gallery: ReviewGallery = None
 # ----------------------------------------------- - ---------------------------------------------- #
