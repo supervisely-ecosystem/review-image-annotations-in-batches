@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "name": "Review Image Annotations in Batches",
   "description": "Allows you to review annotation results in a user interface specifically designed for such tasks",
-  "docker_image": "supervisely/labeling:6.73.152",
+  "docker_image": "supervisely/labeling:6.73.163",
   "categories": ["images", "collaboration"],
   "headless": false,
   "entrypoint": "python -m uvicorn src.main:app --host 0.0.0.0 --port 8000",
