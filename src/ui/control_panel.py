@@ -526,7 +526,7 @@ def start_review():
             },
         }
     ]
-    if g.settings.filter_images:
+    if g.settings.filter_images and g.settings.tags:
         images_filters.append(
             {
                 "type": "images_tag",
