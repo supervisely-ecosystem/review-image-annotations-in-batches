@@ -42,14 +42,10 @@ def list_light_figures_info(
         ApiField.FIELDS: fields,
         ApiField.FILTER: [],
     }
-    looking_header = g.api.headers.get("x-job-id")
-    if looking_header and looking_header == str(id):
-        pass
-    else:
+    if g.api.headers.get("x-job-id") != str(id):
         g.api.add_header("x-job-id", str(id))
     resp = g.api.post("figures.list", data)
-    looking_header = g.api.headers.get("x-job-id")
-    if looking_header and looking_header == str(id):
+    if g.api.headers.get("x-job-id") == str(id):
         g.api.pop_header("x-job-id")
     infos = resp.json()
     images_figures = defaultdict(list)
