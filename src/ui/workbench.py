@@ -71,13 +71,13 @@ def apply_decision():
     tag_change_states: dict = g.image_gallery.get_tag_change_states()
     for image in g.image_batches[g.current_batch_idx]:
         try:
-            review_state = review_states[str(image[0].id)]
+            review_state = review_states[str(image.id)]
         except KeyError:
             title = "Error in getting review status"
-            descr = f"Please check review status for image {image[0].name} before applying the decision. For now, it will be skipped."
+            descr = f"Please check review status for image {image.name} before applying the decision. For now, it will be skipped."
             sly.app.show_dialog(title, descr, status="error")
             sly.logger.error(
-                f"Error in getting review status for image {image[0].name}: {image[0].id}. Will be skipped"
+                f"Error in getting review status for image {image.name}: {image.id}. Will be skipped"
             )
             continue
         if review_state == "ignore":
@@ -85,7 +85,7 @@ def apply_decision():
         elif review_state == "accepted":
             changed_tag_ids = list(tag_change_states.keys())
             for tag_id in changed_tag_ids:
-                if any(d.get("id") == int(tag_id) for d in image[0].tags):
+                if any(d.get("id") == int(tag_id) for d in image.tags):
                     respones = g.api.image.update_tag_value(int(tag_id), value=tag_values[tag_id])
                     if respones.get("success", False):
                         sly.logger.info(f"Tag {tag_id} updated successfully")
@@ -93,7 +93,7 @@ def apply_decision():
                         sly.logger.error(f"Error in updating tag {tag_id}")
         g.api.labeling_job.set_entity_review_status(
             g.job_info.id,
-            image[0].id,
+            image.id,
             review_state,
         )
 
