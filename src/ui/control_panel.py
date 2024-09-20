@@ -304,9 +304,11 @@ def populate_gallery(gallery_widget: workbench.ReviewGallery):
     gallery_widget.clean_up()
     batch = g.image_batches[g.current_batch_idx]
     anns = g.api.labeling_job.get_annotations(g.job_info.id, image_infos=batch)
+    sly.logger.debug(f"TIME to get annotations: {time.time() - start}")
+    start = time.time()
     for image, ann in zip(batch, anns):
         gallery_widget.append(image, ann, project_meta=g.job_project_meta)
-    sly.logger.debug("TIME to populate gallery:", time.time() - start)
+    sly.logger.debug(f"TIME to populate gallery: {time.time() - start}")
 
 
 @u.handle_exception_dialog
@@ -540,7 +542,7 @@ def start_review():
         g.job_info.dataset_id,
         filters=images_filters,
     )
-    sly.logger.debug("TIME to get images infos:", time.time() - start)
+    sly.logger.debug(f"TIME to get images infos: {time.time() - start}")
 
     if not images:
         show_dialog_no_images()
@@ -560,19 +562,19 @@ def start_review():
 
     start = time.time()
     figures = u.list_light_figures_info(g.job_info.dataset_id)
-    sly.logger.debug("TIME to get light figures info:", time.time() - start)
+    sly.logger.debug(f"TIME to get light figures info: {time.time() - start}")
 
     if g.settings.filter_images:
         start = time.time()
         images, figures = filter_image_by_class(images, figures, g.settings)
-        sly.logger.debug("TIME to filter annotations by class:", time.time() - start)
+        sly.logger.debug(f"TIME to filter annotations by class: {time.time() - start}")
         if not images:
             show_dialog_no_images()
             return
 
     start = time.time()
     images = group_images(images, figures, g.settings.group_by)
-    sly.logger.debug(f"TIME to group images by {g.settings.group_by}:", time.time() - start)
+    sly.logger.debug(f"TIME to group images by {g.settings.group_by}: {time.time() - start}")
 
     # -------------------------------------- Adjust Progress Bar ------------------------------------- #
     g.review_images_cnt = len(images)
@@ -582,10 +584,14 @@ def start_review():
     g.image_gallery.set_default_review_state(g.settings.default_decision)
 
     # create image batch and get annotations only for it
+    start = time.time()
     batch = g.image_batches[g.current_batch_idx]
     anns = g.api.labeling_job.get_annotations(g.job_info.id, image_infos=batch)
+    sly.logger.debug(f"TIME to get annotations: {time.time() - start}")
+    start = time.time()
     for image, ann in zip(batch, anns):
         g.image_gallery.append(image, ann, project_meta=g.job_project_meta)
+    sly.logger.debug(f"TIME to populate gallery: {time.time() - start}")
 
     workbench.card.unlock()
     workbench.card.uncollapse()
