@@ -529,8 +529,8 @@ def start_review():
             {
                 "type": "images_tag",
                 "data": {
-                    "include": True,
                     "tags": [{"tagId": tag.sly_id} for tag in g.settings.tags],
+                    "include": True,
                 },
             }
         )
