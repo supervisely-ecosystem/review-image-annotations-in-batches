@@ -151,7 +151,7 @@ data_container = Container(widgets=[job_selector_container, job_info_container])
 data_card = Card("Labeling Job", content=data_container)
 
 # -------------------------------------- Batch Size Settings ------------------------------------- #
-batch_size_input = InputNumber(4, min=4, max=100)
+batch_size_input = InputNumber(40, min=4, max=100)
 batch_size_text = Text(
     text="Set the number of images to be displayed in the batch", color="#5a6772"
 )
