@@ -1,2 +1,0 @@
-# supervisely==6.73.152
-git+https://github.com/supervisely/supervisely.git@upd-labeling-job-get-anns
