@@ -30,6 +30,7 @@ class Settings:
 
 # ----------------------------------------- Init Section ----------------------------------------- #
 job_info: LabelingJobInfo = None
+job_ds_info: sly.DatasetInfo = None
 image_batches = []
 current_batch_idx = 0
 review_images_cnt = 0

@@ -35,7 +35,6 @@ def list_light_figures_info(
     :return: A dictionary where keys are image IDs and values are lists of FigureInfo.
     :rtype: :class: `Dict[int, List[FigureInfo]]`
     """
-    fig_api = FigureApi(g.api)
     fields = ["id", "imageId", "classId"]
     data = {
         ApiField.DATASET_ID: dataset_id,
@@ -45,12 +44,19 @@ def list_light_figures_info(
     if g.api.headers.get("x-job-id") != str(id):
         g.api.add_header("x-job-id", str(id))
     resp = g.api.post("figures.list", data)
-    if g.api.headers.get("x-job-id") == str(id):
-        g.api.pop_header("x-job-id")
     infos = resp.json()
     images_figures = defaultdict(list)
-    for info in infos["entities"]:
-        figure_info = fig_api._convert_json_info(info, True)
-        images_figures[figure_info.entity_id].append(figure_info)
+    total_pages = infos["pagesCount"]
+    for page in range(1, total_pages + 1):
+        if page > 1:
+            data.update({ApiField.PAGE: page})
+            resp = g.api.post("figures.list", data)
+            infos = resp.json()
+        for info in infos["entities"]:
+            figure_info = g.api.image.figure._convert_json_info(info, True)
+            images_figures[figure_info.entity_id].append(figure_info)
+
+    if g.api.headers.get("x-job-id") == str(id):
+        g.api.pop_header("x-job-id")
 
     return dict(images_figures)

@@ -359,20 +359,23 @@ def filter_image_by_class(
         return [], []
 
     filtered_figures = {}
-    img_ids = []
+    filtered_img_ids = []
+    img_ids = [info.id for info in img_infos]
     class_ids = [cls.sly_id for cls in settings.classes]
-    for id, figures in figures_dict.items():
-        if len(figures) == 0 and len(settings.classes) == 0:
+    for id in img_ids:
+        figures = figures_dict.get(id, [])
+        if len(settings.classes) == 0 and len(figures) == 0:
             filtered_figures[id] = figures
-            img_ids.append(id)
+            filtered_img_ids.append(id)
             continue
-        for figure in figures:
-            if figure.class_id in class_ids:
-                filtered_figures[id] = figures
-                img_ids.append(id)
-                break
-    img_ids = set(img_ids)
-    filtered_imgs = [info for info in img_infos if info.id in img_ids]
+        elif len(settings.classes) > 0 and len(figures) > 0:
+            for figure in figures:
+                if figure.class_id in class_ids:
+                    filtered_figures[id] = figures
+                    filtered_img_ids.append(id)
+                    break
+    filtered_img_ids = set(filtered_img_ids)
+    filtered_imgs = [info for info in img_infos if info.id in filtered_img_ids]
     return filtered_imgs, filtered_figures
 
 
@@ -438,10 +441,8 @@ def show_job_info(job_id):
     selected_dataset = g.job_info.dataset_id
     selected_project = g.job_info.project_id
 
-    dataset_thumbnail.set(
-        g.api.project.get_info_by_id(selected_project),
-        g.api.dataset.get_info_by_id(selected_dataset),
-    )
+    g.job_ds_info = g.api.dataset.get_info_by_id(selected_dataset)
+    dataset_thumbnail.set(g.api.project.get_info_by_id(selected_project), g.job_ds_info)
 
     cleaned_classes = [cls.strip("'") for cls in g.job_info.classes_to_label]
     cleaned_tags = [tag.strip("'") for tag in g.job_info.tags_to_label]
@@ -536,6 +537,23 @@ def start_review():
                 },
             }
         )
+    elif g.settings.filter_images and g.settings.tags == []:
+        images_filters.append(
+            {
+                "type": "images_tag",
+                "data": {
+                    "tagId": None,
+                    "include": False,
+                    "value": None,
+                },
+            }
+        )
+
+    # the approximate number of images at which the dashbord will take more time to load
+    if g.job_ds_info.images_count >= 10000:
+        text = f"Datasets with {g.job_ds_info.images_count} images may take more time to load. Please wait."
+        sly.app.show_dialog("Processing...", text, "info")
+        sly.logger.info(text)
 
     start = time.time()
     images = g.api.image.get_filtered_list(
@@ -547,18 +565,6 @@ def start_review():
     if not images:
         show_dialog_no_images()
         return
-
-    # the approximate number of images at which the dashbord will take more time to load
-    if len(images) >= 8000:
-        text = "Datasets with this number of images may take more time to load. Please wait."
-        sly.app.show_dialog("Processing...", text, "info")
-        sly.logger.info(text)
-
-    if g.settings.filter_images:
-        images = filter_images_by_tags(images, g.settings.tags)
-        if not images:
-            show_dialog_no_images()
-            return
 
     start = time.time()
     figures = u.list_light_figures_info(g.job_info.dataset_id)
