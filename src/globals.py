@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from typing import List
 
 import supervisely as sly
 from dotenv import load_dotenv
@@ -20,16 +21,16 @@ selected_job = os.environ.get("modal.state.slyJobId", None)
 class Settings:
     batch_size: int
     group_by: str
-    tags: list
-    classes: list
-    all_images: bool
+    tags: List[sly.Tag]
+    classes: List[sly.ObjClass]
+    filter_images: bool
     tags_editing: bool
     default_decision: str
 
 
 # ----------------------------------------- Init Section ----------------------------------------- #
-images_list = []
 job_info: LabelingJobInfo = None
+job_ds_info: sly.DatasetInfo = None
 image_batches = []
 current_batch_idx = 0
 review_images_cnt = 0

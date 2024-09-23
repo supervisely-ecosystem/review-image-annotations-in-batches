@@ -142,6 +142,8 @@ class ReviewGallery(GridGallery):
             tags_data = []
             for tag in img_tags:
                 tag_meta = self._task_meta.get_tag_meta_by_id(tag["tag_id"])
+                if not tag_meta:
+                    continue
                 tags_data.append(
                     {
                         "id": tag["id"],

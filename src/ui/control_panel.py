@@ -1,5 +1,6 @@
+import time
 from collections import defaultdict
-from typing import List
+from typing import Dict, List
 
 import supervisely as sly
 from supervisely.app.widgets import (
@@ -95,16 +96,16 @@ job_info_card = Card("Info", content=Container(widgets=job_info_widgets))
 job_info_card.hide()
 
 # ----------------------------------- Image Filtering Settings ----------------------------------- #
-all_images_switcher = Switch(False, on_text="Yes", off_text="No")
-all_images_text_l1 = Text(
+filter_images_switcher = Switch(False, on_text="Yes", off_text="No")
+filter_images_text_l1 = Text(
     text="Filtering works simultaneously by tags and classes",
     color="#5a6772",
 )
-all_images_text_l2 = Text(
+filter_images_text_l2 = Text(
     text=" - If no elements is selected in a category, only images lacking these elements will be displayed",
     color="#5a6772",
 )
-all_images_text_l3 = Text(
+filter_images_text_l3 = Text(
     text=" - If all elements in a category are selected, images containing at least one of these elements will be displayed",
     color="#5a6772",
 )
@@ -113,7 +114,7 @@ job_tags_field = Field(title="by Tags", content=job_tags_selector)
 job_classes_selector = ClassesListSelector(multiple=True)
 job_classes_field = Field(title="by Classes", content=job_classes_selector)
 tips_container = Container(
-    widgets=[all_images_text_l2, all_images_text_l3], gap=4, style="margin-left: 20px;"
+    widgets=[filter_images_text_l2, filter_images_text_l3], gap=4, style="margin-left: 20px;"
 )
 filter_fields_container = Container(
     widgets=[job_tags_field, job_classes_field], direction="horizontal"
@@ -124,8 +125,8 @@ filter_card = Card(
     "Filter Images",
     content=Container(
         widgets=[
-            all_images_text_l1,
-            all_images_switcher,
+            filter_images_text_l1,
+            filter_images_switcher,
             filter_container,
         ]
     ),
@@ -150,7 +151,7 @@ data_container = Container(widgets=[job_selector_container, job_info_container])
 data_card = Card("Labeling Job", content=data_container)
 
 # -------------------------------------- Batch Size Settings ------------------------------------- #
-batch_size_input = InputNumber(4, min=4, max=100)
+batch_size_input = InputNumber(40, min=4, max=100)
 batch_size_text = Text(
     text="Set the number of images to be displayed in the batch", color="#5a6772"
 )
@@ -274,7 +275,7 @@ def disable_settings(disable):
         group_by_radio_group.disable()
         job_tags_field.disable()
         job_classes_field.disable()
-        all_images_switcher.disable()
+        filter_images_switcher.disable()
         tags_editing_switcher.disable()
         job_tags_selector.disable()
         job_classes_selector.disable()
@@ -284,7 +285,7 @@ def disable_settings(disable):
         group_by_radio_group.enable()
         job_tags_field.enable()
         job_classes_field.enable()
-        all_images_switcher.enable()
+        filter_images_switcher.enable()
         tags_editing_switcher.enable()
         job_tags_selector.enable()
         job_classes_selector.enable()
@@ -292,28 +293,29 @@ def disable_settings(disable):
 
 
 @u.handle_exception_dialog
-def create_image_batches(
-    img_infos: List[sly.ImageInfo],
-    anns: List[sly.Annotation],
-    batch_size: int,
-):
-    paired_list = list(zip(img_infos, anns))
-    batches = [paired_list[i : i + batch_size] for i in range(0, len(paired_list), batch_size)]
+def create_image_batches(img_infos: List[sly.ImageInfo], batch_size: int = 40):
+    batches = list(sly.batched(img_infos, batch_size=batch_size))
     return batches
 
 
 @u.handle_exception_dialog
 def populate_gallery(gallery_widget: workbench.ReviewGallery):
+    start = time.time()
     gallery_widget.clean_up()
-    for image in g.image_batches[g.current_batch_idx]:
-        gallery_widget.append(image[0], image[1], project_meta=g.job_project_meta)
+    batch = g.image_batches[g.current_batch_idx]
+    anns = g.api.labeling_job.get_annotations(g.job_info.id, image_infos=batch)
+    sly.logger.debug(f"TIME to get annotations: {time.time() - start}")
+    start = time.time()
+    for image, ann in zip(batch, anns):
+        gallery_widget.append(image, ann, project_meta=g.job_project_meta)
+    sly.logger.debug(f"TIME to populate gallery: {time.time() - start}")
 
 
 @u.handle_exception_dialog
 def show_dialog_no_images():
     text = "No images were found for review"
     sly.app.show_dialog("Warning", text, "warning")
-    sly.logger.warn(text)
+    sly.logger.warning(text)
     unlock_control_tab()
 
 
@@ -324,7 +326,7 @@ def get_settings():
         group_by=group_by_radio_group.get_value(),
         tags=job_tags_selector.get_selected_tags(),
         classes=job_classes_selector.get_selected_classes(),
-        all_images=all_images_switcher.is_on(),
+        filter_images=filter_images_switcher.is_on(),
         tags_editing=tags_editing_switcher.is_on(),
         default_decision=acceptance_radio_group.get_value(),
     )
@@ -348,65 +350,67 @@ def filter_images_by_tags(images: List[sly.ImageInfo], tags: List[str]):
 
 
 @u.handle_exception_dialog
-def filter_image_anns(
+def filter_image_by_class(
     img_infos: List[sly.ImageInfo],
-    annotations: List[sly.Annotation],
+    figures_dict: Dict[int, List[sly.FigureInfo]],
     settings: g.Settings,
 ):
-    if img_infos == []:
+    if not img_infos:
         return [], []
-    filtered_anns = []
-    img_idx = []
-    for idx, ann in enumerate(annotations):
-        if len(ann.labels) == 0 and len(settings.classes) == 0:
-            filtered_anns.append(ann)
-            img_idx.append(idx)
+
+    filtered_figures = {}
+    filtered_img_ids = []
+    img_ids = [info.id for info in img_infos]
+    class_ids = [cls.sly_id for cls in settings.classes]
+    for id in img_ids:
+        figures = figures_dict.get(id, [])
+        if len(settings.classes) == 0 and len(figures) == 0:
+            filtered_figures[id] = figures
+            filtered_img_ids.append(id)
             continue
-        for label in ann.labels:
-            if label.obj_class in settings.classes:
-                filtered_anns.append(ann)
-                img_idx.append(idx)
-                break
-    filtered_imgs = [img_infos[idx] for idx in img_idx]
-    return filtered_imgs, filtered_anns
+        elif len(settings.classes) > 0 and len(figures) > 0:
+            for figure in figures:
+                if figure.class_id in class_ids:
+                    filtered_figures[id] = figures
+                    filtered_img_ids.append(id)
+                    break
+    filtered_img_ids = set(filtered_img_ids)
+    filtered_imgs = [info for info in img_infos if info.id in filtered_img_ids]
+    return filtered_imgs, filtered_figures
 
 
 @u.handle_exception_dialog
-def group_images_by(
+def group_images(
     images: List[sly.ImageInfo],
-    annotations: List[sly.Annotation],
+    figures: Dict[int, List[sly.FigureInfo]],
     group_by: str,
 ):
     grouped_images: List[sly.ImageInfo] = []
-    grouped_anns: List[sly.Annotation] = []
     len_images = len(images)
-    len_anns = len(annotations)
     if group_by == "class":
-        cond_func = lambda img, ann, cls: cls in [label.obj_class for label in ann.labels]
+        cond_func = lambda img, fig, cls: any(f.class_id == cls.sly_id for f in fig)
         items = g.job_project_meta.obj_classes
     elif group_by == "tag":
-        cond_func = lambda img, ann, tag: tag.sly_id in [tag["tagId"] for tag in img.tags]
+        cond_func = lambda img, fig, tag: tag.sly_id in [tag["tagId"] for tag in img.tags]
         items = g.job_project_meta.tag_metas
     else:
         raise NotImplementedError(f"Invalid group_by value: {group_by}")
 
     for item in items:
         for idx in range(len(images) - 1, -1, -1):
-            img, ann = images[idx], annotations[idx]
-            if cond_func(img, ann, item):
+            img = images[idx]
+            fig = figures.get(img.id, [])
+            if cond_func(img, fig, item):
                 grouped_images.append(img)
-                grouped_anns.append(ann)
                 images.pop(idx)
-                annotations.pop(idx)
 
     grouped_images.extend(images)
-    grouped_anns.extend(annotations)
 
-    if len_images != len(grouped_images) or len_anns != len(grouped_anns):
-        text = "Some images or annotations were not grouped."
+    if len_images != len(grouped_images):
+        text = "Some images were not grouped."
         sly.app.show_dialog("Warning", text, "warning")
-        sly.logger.warn(text)
-    return grouped_images, grouped_anns
+        sly.logger.warning(text)
+    return grouped_images
 
 
 disable_settings(True)
@@ -437,10 +441,8 @@ def show_job_info(job_id):
     selected_dataset = g.job_info.dataset_id
     selected_project = g.job_info.project_id
 
-    dataset_thumbnail.set(
-        g.api.project.get_info_by_id(selected_project),
-        g.api.dataset.get_info_by_id(selected_dataset),
-    )
+    g.job_ds_info = g.api.dataset.get_info_by_id(selected_dataset)
+    dataset_thumbnail.set(g.api.project.get_info_by_id(selected_project), g.job_ds_info)
 
     cleaned_classes = [cls.strip("'") for cls in g.job_info.classes_to_label]
     cleaned_tags = [tag.strip("'") for tag in g.job_info.tags_to_label]
@@ -505,7 +507,6 @@ def start_review():
     g.job_project_meta = g.api.labeling_job.get_project_meta(g.selected_job)
     selected_dataset = g.job_info.dataset_id
     selected_project = g.job_info.project_id
-    g.images_list = g.job_info.entities
 
     sly.logger.debug(
         "Recived IDs from the API. "
@@ -516,46 +517,87 @@ def start_review():
     g.settings = get_settings()
     g.image_gallery.edit_tags(g.settings.tags_editing)
 
-    img_ids = [
-        entity["id"]
-        for entity in g.job_info.entities
-        if entity["reviewStatus"] in g.accepted_statuses_for_review
+    images_filters = [
+        {
+            "type": "job",
+            "data": {
+                "jobId": g.job_info.id,
+                "status": g.accepted_statuses_for_review,
+                "showEntitiesInQueuePool": False,
+            },
+        }
     ]
-    if img_ids == []:
-        show_dialog_no_images()
-        return
+    if g.settings.filter_images and g.settings.tags:
+        images_filters.append(
+            {
+                "type": "images_tag",
+                "data": {
+                    "tags": [{"tagId": tag.sly_id} for tag in g.settings.tags],
+                    "include": True,
+                },
+            }
+        )
+    elif g.settings.filter_images and g.settings.tags == []:
+        images_filters.append(
+            {
+                "type": "images_tag",
+                "data": {
+                    "tagId": None,
+                    "include": False,
+                    "value": None,
+                },
+            }
+        )
 
-    images = g.api.image.get_list(
+    # the approximate number of images at which the dashbord will take more time to load
+    if g.job_ds_info.images_count >= 10000:
+        text = f"Datasets with {g.job_ds_info.images_count} images may take more time to load. Please wait."
+        sly.app.show_dialog("Processing...", text, "info")
+        sly.logger.info(text)
+
+    start = time.time()
+    images = g.api.image.get_filtered_list(
         g.job_info.dataset_id,
-        filters=[{"field": "id", "operator": "in", "value": img_ids}],
+        filters=images_filters,
     )
+    sly.logger.debug(f"TIME to get images infos: {time.time() - start}")
 
-    if g.settings.all_images:
-        images = filter_images_by_tags(images, g.settings.tags)
-        img_ids = [img.id for img in images]
-
-    if img_ids == []:
+    if not images:
         show_dialog_no_images()
         return
 
-    anns = g.api.labeling_job.get_annotations(g.job_info.id, img_ids)
+    start = time.time()
+    figures = u.list_light_figures_info(g.job_info.dataset_id)
+    sly.logger.debug(f"TIME to get light figures info: {time.time() - start}")
 
-    if g.settings.all_images:
-        images, anns = filter_image_anns(images, anns, g.settings)
-        if images == []:
+    if g.settings.filter_images:
+        start = time.time()
+        images, figures = filter_image_by_class(images, figures, g.settings)
+        sly.logger.debug(f"TIME to filter annotations by class: {time.time() - start}")
+        if not images:
             show_dialog_no_images()
             return
 
-    images, anns = group_images_by(images, anns, g.settings.group_by)
+    start = time.time()
+    images = group_images(images, figures, g.settings.group_by)
+    sly.logger.debug(f"TIME to group images by {g.settings.group_by}: {time.time() - start}")
 
     # -------------------------------------- Adjust Progress Bar ------------------------------------- #
     g.review_images_cnt = len(images)
     g.progress = workbench.review_progress(message="Reviewing images...", total=g.review_images_cnt)
 
-    g.image_batches = create_image_batches(images, anns, g.settings.batch_size)
+    g.image_batches = create_image_batches(images, g.settings.batch_size)
     g.image_gallery.set_default_review_state(g.settings.default_decision)
-    for image in g.image_batches[g.current_batch_idx]:
-        g.image_gallery.append(image[0], image[1], project_meta=g.job_project_meta)
+
+    # create image batch and get annotations only for it
+    start = time.time()
+    batch = g.image_batches[g.current_batch_idx]
+    anns = g.api.labeling_job.get_annotations(g.job_info.id, image_infos=batch)
+    sly.logger.debug(f"TIME to get annotations: {time.time() - start}")
+    start = time.time()
+    for image, ann in zip(batch, anns):
+        g.image_gallery.append(image, ann, project_meta=g.job_project_meta)
+    sly.logger.debug(f"TIME to populate gallery: {time.time() - start}")
 
     workbench.card.unlock()
     workbench.card.uncollapse()
@@ -566,7 +608,7 @@ def start_review():
     g.change_settings_button.enable()
 
 
-@all_images_switcher.value_changed
+@filter_images_switcher.value_changed
 @u.handle_exception_dialog
 def show_filters(switched):
     if not switched:
